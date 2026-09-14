@@ -96,13 +96,22 @@ guess about what would be nice to have. See
    `examples/pki_verify_demo.py`. See
    [diagram 12](../diagrams/12-pki-cert-verify.svg).
 
+   ~~**No chain verification.**~~ **Done (one step).** `verify_chain()`
+   checks a leaf cert against a separate issuer cert (issuer name match,
+   validity period, signature) — verified against a real 2-level chain
+   generated via `openssl x509 -req -CA` (not fabricated), plus a real
+   negative control (an unrelated CA correctly fails). 5 new tests
+   (58 total). See [diagram 14](../diagrams/14-pki-chain-verify.svg).
+
    **Not done yet, and this remains real scope:**
-   - **No chain verification** — this checks one certificate's signature
-     against a given (or self-signed) public key, not a trust chain up
-     to a root CA.
-   - **No key usage / extension checks, no name-constraint checking, no
-     revocation (CRL/OCSP)** — none of the things a real TLS certificate
-     validator needs beyond "is this signature valid."
+   - **Chains longer than one step** — `verify_chain()` checks exactly
+     one leaf→issuer link; a real intermediate-CA chain needs walking
+     multiple links and deciding which root(s) to trust.
+   - **No key usage / extension checks (e.g. is the issuer cert even
+     allowed to sign other certs — `basicConstraints: CA:TRUE`?), no
+     name-constraint checking, no revocation (CRL/OCSP)** — none of the
+     things a real TLS certificate validator needs beyond "is this
+     signature valid and does the issuer name match."
    - **`KNOWN_SIGNATURE_OIDS` covers exactly the two algorithms verified
      this session** (ML-DSA-65, Falcon-512) against this host's specific
      `oqs-provider` build. Falcon's OID (`1.3.9999.*`) is an

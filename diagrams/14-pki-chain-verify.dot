@@ -1,0 +1,35 @@
+digraph chain {
+  bgcolor="#0b0f14";
+  rankdir=TB;
+  fontname="Helvetica";
+  fontcolor="#c9d1d9";
+  labelloc="t";
+  label="src/pki/certs.py — verify_chain(): a real 2-level cert chain";
+  fontsize=20;
+  node [style=filled, fillcolor="#161b22", color="#39ffe0", fontcolor="#e6edf3", fontname="Helvetica", penwidth=2, shape=box, margin="0.25,0.15"];
+  edge [color="#8f5cff", fontcolor="#c9d1d9", fontname="Helvetica", penwidth=1.6, fontsize=11];
+
+  openssl_ca [label="openssl req -x509 ...\nreal self-signed CA cert\n(CN=test-root-ca)", color="#ffcb47"];
+  openssl_leaf [label="openssl x509 -req -CA ...\nreal leaf cert, SIGNED BY\nthe CA (not self-signed)", color="#ffcb47"];
+  unrelated [label="a second, unrelated\nself-signed CA -- valid,\nbut never signed this leaf", color="#ffcb47"];
+
+  verify1 [label="verify_chain(leaf, real_ca)", shape=diamond, color="#ff2ec4"];
+  verify2 [label="verify_chain(leaf, unrelated_ca)", shape=diamond, color="#ff2ec4"];
+
+  checks [label="checks: leaf.issuer ==\nissuer.subject, leaf currently\nvalid, leaf.signature verifies\nagainst issuer's real public key\n(extract_raw_public_key + Signature.verify)"];
+
+  pass [label="True -- real chain,\nverified this session", color="#39ffe0"];
+  fail [label="False -- discriminating\nnegative control, verified\nthis session", color="#ff2ec4"];
+
+  scope [label="does NOT check: chain depth\nbeyond one step, key usage\n(is issuer allowed to sign certs?),\nname constraints, revocation --\nsee FUTURE_DIRECTIONS.md", shape=note, color="#8a99a8"];
+
+  openssl_ca -> openssl_leaf;
+  openssl_leaf -> verify1;
+  openssl_leaf -> verify2;
+  unrelated -> verify2;
+  verify1 -> checks -> pass;
+  verify2 -> checks;
+  checks -> fail [style=dashed, label="issuer mismatch\nor bad signature"];
+  pass -> scope [style=dotted];
+  fail -> scope [style=dotted];
+}

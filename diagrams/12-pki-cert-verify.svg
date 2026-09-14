@@ -136,13 +136,13 @@
 <!-- scope -->
 <g id="node8" class="node">
 <title>scope</title>
-<polygon fill="#161b22" stroke="#8a99a8" stroke-width="2" points="687.5,-82 396.5,-82 396.5,0 693.5,0 693.5,-76 687.5,-82"/>
-<polyline fill="none" stroke="#8a99a8" stroke-width="2" points="687.5,-82 687.5,-76 "/>
-<polyline fill="none" stroke="#8a99a8" stroke-width="2" points="693.5,-76 687.5,-76 "/>
-<text text-anchor="middle" x="545" y="-59.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#e6edf3">does NOT do: chain verification,</text>
-<text text-anchor="middle" x="545" y="-44.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#e6edf3">key usage, extensions, revocation,</text>
-<text text-anchor="middle" x="545" y="-29.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#e6edf3">name matching beyond self&#45;signed &#45;&#45;</text>
-<text text-anchor="middle" x="545" y="-14.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#e6edf3">see FUTURE_DIRECTIONS.md</text>
+<polygon fill="#161b22" stroke="#8a99a8" stroke-width="2" points="682.5,-82 401.5,-82 401.5,0 688.5,0 688.5,-76 682.5,-82"/>
+<polyline fill="none" stroke="#8a99a8" stroke-width="2" points="682.5,-82 682.5,-76 "/>
+<polyline fill="none" stroke="#8a99a8" stroke-width="2" points="688.5,-76 682.5,-76 "/>
+<text text-anchor="middle" x="545" y="-59.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#e6edf3">does NOT do: multi&#45;step chains,</text>
+<text text-anchor="middle" x="545" y="-44.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#e6edf3">key usage, extensions, revocation &#45;&#45;</text>
+<text text-anchor="middle" x="545" y="-29.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#e6edf3">verify_chain() covers one</text>
+<text text-anchor="middle" x="545" y="-14.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#e6edf3">leaf&#45;to&#45;issuer link, see diagram 14</text>
 </g>
 <!-- result&#45;&gt;scope -->
 <g id="edge8" class="edge">

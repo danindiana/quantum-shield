@@ -11,8 +11,8 @@
 <p align="center">
   <img alt="FIPS 203" src="https://img.shields.io/badge/FIPS%20203-ML--KEM-39ffe0?style=flat-square&labelColor=0b0f14">
   <img alt="FIPS 204" src="https://img.shields.io/badge/FIPS%20204-ML--DSA-39ffe0?style=flat-square&labelColor=0b0f14">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-53%20passing-8f5cff?style=flat-square&labelColor=0b0f14">
-  <img alt="Diagrams" src="https://img.shields.io/badge/diagrams-13-8f5cff?style=flat-square&labelColor=0b0f14">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-58%20passing-8f5cff?style=flat-square&labelColor=0b0f14">
+  <img alt="Diagrams" src="https://img.shields.io/badge/diagrams-14-8f5cff?style=flat-square&labelColor=0b0f14">
   <img alt="PRs welcome" src="https://img.shields.io/badge/PRs-welcome-39ffe0?style=flat-square&labelColor=0b0f14">
   <a href="https://github.com/danindiana/quantum-shield/commits/master"><img alt="Last commit" src="https://img.shields.io/github/last-commit/danindiana/quantum-shield?style=flat-square&labelColor=0b0f14"></a>
   <a href="https://github.com/danindiana/quantum-shield/actions/workflows/tests.yml"><img alt="Tests" src="https://github.com/danindiana/quantum-shield/actions/workflows/tests.yml/badge.svg"></a>
@@ -88,9 +88,13 @@ through `openssl` + `oqs-provider`.
   `src/algorithms/signature.py`. **Never builds or encodes a
   certificate** — that stays delegated to `openssl`+`oqs-provider`
   (`test_pq_tls.py`); this only reads DER that openssl already produced
-  correctly. Verified against real ML-DSA-65 and Falcon-512 certs
-  generated fresh in the test suite. See
-  [diagram 12](diagrams/12-pki-cert-verify.svg) and
+  correctly. `verify_chain()` checks a real leaf cert against a
+  separate issuer cert (not just self-signed) — verified against a real
+  2-level chain (`openssl x509 -req -CA`) plus a real negative control
+  (an unrelated CA correctly fails). Verified against real ML-DSA-65 and
+  Falcon-512 certs generated fresh in the test suite. See
+  [diagram 12](diagrams/12-pki-cert-verify.svg),
+  [diagram 14](diagrams/14-pki-chain-verify.svg), and
   `examples/pki_verify_demo.py`.
 - **`src/protocols/tls/demo.py`** — a real TLS 1.3 handshake using
   ML-KEM-768 for key exchange, via `openssl s_server`/`s_client` +
@@ -105,7 +109,7 @@ through `openssl` + `oqs-provider`.
   verified with a real negative control — mismatched groups fail the
   handshake outright. See [diagram 13](diagrams/13-tls-pq-handshake.svg)
   and `examples/tls_demo.py`.
-- **53 passing tests** (`tests/test_kem.py`, `tests/test_signature.py`,
+- **58 passing tests** (`tests/test_kem.py`, `tests/test_signature.py`,
   `tests/test_setup.py`, `tests/test_kms.py`, `tests/test_pki_certs.py`,
   `tests/test_tls_demo.py`) run against the actual installed
   `liboqs.so`, real `cryptography` primitives, and real
@@ -300,8 +304,9 @@ overstated: SSH deployment (`scripts/ssh/`) and TLS certificate generation
 work today; `src/kms/` now has a real, tested key store with rotation and
 revocation, wired into `simple_ssh_keygen.py --encrypt` (see above), but
 still no hardware-backed storage or multi-user access control; `src/pki/`
-now verifies certificate signatures (see above) but doesn't build
-certificates, verify chains, or check revocation; `src/protocols/tls/`
+now verifies certificate signatures and one leaf→issuer chain link (see
+above) but doesn't build certificates, walk multi-step chains, or check
+revocation; `src/protocols/tls/`
 now has a real PQ-KEM TLS 1.3 handshake demo (see above), but full
 PQ-*authenticated* TLS needs OpenSSL 3.2+ (this project has 3.0.2) — a
 bigger environment change than anything else here, not just more code.
@@ -310,7 +315,7 @@ See [`PROGRESS.md`](PROGRESS.md) and
 
 ## Diagrams
 
-13 Graphviz diagrams (dark background / neon palette), source `.dot`
+14 Graphviz diagrams (dark background / neon palette), source `.dot`
 alongside rendered `.svg`/`.png` in [`diagrams/`](diagrams/):
 
 | # | Diagram | What it shows |
@@ -328,6 +333,7 @@ alongside rendered `.svg`/`.png` in [`diagrams/`](diagrams/):
 | 11 | [KMS rotation/revocation](diagrams/11-kms-rotation-revocation.svg) | Multi-generation rotation and revocation, with `allow_revoked=True` |
 | 12 | [PKI cert verification](diagrams/12-pki-cert-verify.svg) | Verifying a real PQ X.509 cert's signature without reimplementing DER |
 | 13 | [PQ TLS handshake](diagrams/13-tls-pq-handshake.svg) | A real TLS 1.3 handshake with an ML-KEM-768 group, and the OpenSSL 3.2+ limit found doing it |
+| 14 | [PKI chain verification](diagrams/14-pki-chain-verify.svg) | A real leaf-signed-by-CA link, and a negative control with an unrelated CA |
 
 ## Documentation
 
@@ -354,7 +360,7 @@ quantum-shield/
 │   ├── protocols/tls/  # demo.py -- real TLS 1.3 handshake, PQ KEM group only
 │   └── utils/           # empty, planned
 ├── tests/               # pytest, runs against a real liboqs build
-├── diagrams/            # 13 Graphviz diagrams, dark/neon, .dot + rendered
+├── diagrams/            # 14 Graphviz diagrams, dark/neon, .dot + rendered
 ├── docs/                # architecture, future directions, research, best practices
 ├── scripts/             # SSH deployment automation
 ├── configs/              # SSH / algorithm configuration

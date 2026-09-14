@@ -4,7 +4,11 @@ Demo of src/pki/certs.py: generate a real self-signed ML-DSA-65
 certificate via openssl + oqs-provider (the same way test_pq_tls.py
 does), then verify its signature using ONLY this project's own liboqs
 binding (src/algorithms/signature.py) -- no openssl involved in the
-verification step at all.
+verification step at all. Then generates a real 2-level chain (a CA
+cert plus a leaf cert actually signed by that CA, not self-signed) and
+verifies verify_chain() against both the real issuer and a deliberately
+unrelated CA, to prove the check discriminates rather than passing
+either way.
 
 Requires oqs-provider to be built (see README "Building liboqs"); exits
 early with a clear message if it isn't.
@@ -20,7 +24,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.pki.certs import (
     load_certificate, extract_raw_public_key, verify_certificate_signature,
-    is_self_signed_and_valid, algorithm_for_certificate,
+    is_self_signed_and_valid, verify_chain, algorithm_for_certificate,
 )
 
 
@@ -77,8 +81,64 @@ def main():
             print("\n❌ BUG: a freshly generated, unexpired self-signed cert should verify")
             return 1
 
-    print("\n✅ Verified a real X.509 certificate's PQ signature end-to-end, "
-          "openssl only used to generate it, not to check it.")
+        print("\n" + "=" * 60)
+        print("🔗 Now a real 2-level chain: a CA cert, and a LEAF cert")
+        print("   actually signed by that CA (not self-signed)...")
+        ca_key, ca_crt = Path(tmpdir) / "ca2.key", Path(tmpdir) / "ca2.crt"
+        leaf_key = Path(tmpdir) / "leaf.key"
+        leaf_csr = Path(tmpdir) / "leaf.csr"
+        leaf_crt = Path(tmpdir) / "leaf.crt"
+
+        subprocess.run(
+            ["openssl", "req", "-x509", "-new", "-newkey", "mldsa65", "-keyout", str(ca_key),
+             "-out", str(ca_crt), "-days", "3650", "-nodes", "-subj", "/CN=demo-root-ca",
+             "-provider", "default", "-provider", "oqsprovider"],
+            check=True, env=env, capture_output=True,
+        )
+        subprocess.run(
+            ["openssl", "genpkey", "-algorithm", "mldsa65", "-out", str(leaf_key),
+             "-provider", "default", "-provider", "oqsprovider"],
+            check=True, env=env, capture_output=True,
+        )
+        subprocess.run(
+            ["openssl", "req", "-new", "-key", str(leaf_key), "-out", str(leaf_csr),
+             "-subj", "/CN=leaf.example", "-provider", "default", "-provider", "oqsprovider"],
+            check=True, env=env, capture_output=True,
+        )
+        subprocess.run(
+            ["openssl", "x509", "-req", "-in", str(leaf_csr), "-CA", str(ca_crt),
+             "-CAkey", str(ca_key), "-CAcreateserial", "-out", str(leaf_crt), "-days", "365",
+             "-provider", "default", "-provider", "oqsprovider"],
+            check=True, env=env, capture_output=True,
+        )
+
+        ca = load_certificate(ca_crt.read_bytes())
+        leaf = load_certificate(leaf_crt.read_bytes())
+        print(f"   leaf issuer: {leaf.issuer}  (matches CA subject: {ca.subject})")
+
+        chain_ok = verify_chain(leaf, ca)
+        print(f"   verify_chain(leaf, real_ca) -> {chain_ok} (expected: True)")
+
+        print("\n🔍 Negative control: an UNRELATED CA that did not sign this leaf...")
+        unrelated_ca_key = Path(tmpdir) / "unrelated_ca.key"
+        unrelated_ca_crt = Path(tmpdir) / "unrelated_ca.crt"
+        subprocess.run(
+            ["openssl", "req", "-x509", "-new", "-newkey", "mldsa65", "-keyout", str(unrelated_ca_key),
+             "-out", str(unrelated_ca_crt), "-days", "3650", "-nodes", "-subj", "/CN=unrelated-ca",
+             "-provider", "default", "-provider", "oqsprovider"],
+            check=True, env=env, capture_output=True,
+        )
+        unrelated_ca = load_certificate(unrelated_ca_crt.read_bytes())
+        chain_bad = verify_chain(leaf, unrelated_ca)
+        print(f"   verify_chain(leaf, unrelated_ca) -> {chain_bad} (expected: False)")
+
+        if not (chain_ok and not chain_bad):
+            print("\n❌ BUG: chain verification did not discriminate correctly")
+            return 1
+
+    print("\n✅ Verified a real X.509 certificate's PQ signature end-to-end, and a real\n"
+          "   2-level chain that correctly rejects an unrelated issuer -- openssl only\n"
+          "   used to generate certs, never to verify them.")
     return 0
 
 

@@ -5,6 +5,16 @@ individually in this fork in favor of one current summary).
 
 ## Working today
 
+- **`src/pki/certs.py` chain verification (2026-09-14)**: `verify_chain()`
+  checks a leaf cert against a separate issuer cert (issuer name match,
+  validity, signature) — verified against a real 2-level chain (CA cert
+  + a leaf actually signed by it via `openssl x509 -req -CA`, not
+  self-signed) and a real negative control (an unrelated CA, itself
+  valid, correctly fails). 5 new tests (58 total), demoed in the
+  extended `examples/pki_verify_demo.py`. 14th diagram
+  (`diagrams/14-pki-chain-verify.svg`). Checked and fixed every existing
+  diagram/doc claiming "no chain verification" before finishing
+  (diagrams 06, 12; `SYSTEM_ARCHITECTURE.md`, `FUTURE_DIRECTIONS.md`).
 - **SLH-DSA correction (2026-09-14)**: earlier this session (see below)
   this project concluded SLH-DSA-128s was "disabled at compile time."
   That was wrong — the identifier string was wrong
@@ -130,9 +140,10 @@ individually in this fork in favor of one current summary).
 
 ## Not yet started
 
-- `src/pki/` **chain verification, key usage/extensions, revocation
-  (CRL/OCSP)** — current code verifies one certificate's signature, not
-  a trust chain or anything else a real validator needs.
+- `src/pki/` **multi-step chains, key usage/extensions, revocation
+  (CRL/OCSP)** — `verify_chain()` (added 2026-09-14, see above) checks
+  one leaf→issuer link, not a full chain up to a trusted root or
+  anything else a real validator needs.
 - **Full PQ-authenticated TLS** — needs OpenSSL 3.2+, a bigger
   environment change than a pinned-tag rebuild; not something a newer
   `oqs-provider` alone fixes. `src/protocols/tls/demo.py` only covers

@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.pki.certs import (
     load_certificate, extract_raw_public_key, verify_certificate_signature,
-    is_self_signed_and_valid, algorithm_for_certificate, PKIError,
+    is_self_signed_and_valid, verify_chain, algorithm_for_certificate, PKIError,
 )
 
 
@@ -55,6 +55,58 @@ def _generate_self_signed_cert(tmp_path, alg: str, cn: str, days: int = 1) -> Pa
         check=True, capture_output=True, env=env,
     )
     return cert_path
+
+
+def _generate_ca_and_leaf(tmp_path, alg: str, ca_cn: str, leaf_cn: str):
+    """Generates a real 2-level chain via openssl + oqs-provider: a
+    self-signed CA cert, then a leaf cert signed BY that CA (not
+    self-signed) -- the same real x509 -req -CA workflow any CA uses,
+    not a fabricated/hand-built chain. Returns (ca_cert_path, leaf_cert_path)."""
+    env = _openssl_env()
+    ca_key, ca_crt = tmp_path / "ca.key", tmp_path / "ca.crt"
+    leaf_key, leaf_csr, leaf_crt = tmp_path / "leaf.key", tmp_path / "leaf.csr", tmp_path / "leaf.crt"
+
+    subprocess.run(
+        ["openssl", "req", "-x509", "-new", "-newkey", alg, "-keyout", str(ca_key),
+         "-out", str(ca_crt), "-days", "3650", "-nodes", "-subj", f"/CN={ca_cn}",
+         "-provider", "default", "-provider", "oqsprovider"],
+        check=True, capture_output=True, env=env,
+    )
+    subprocess.run(
+        ["openssl", "genpkey", "-algorithm", alg, "-out", str(leaf_key),
+         "-provider", "default", "-provider", "oqsprovider"],
+        check=True, capture_output=True, env=env,
+    )
+    subprocess.run(
+        ["openssl", "req", "-new", "-key", str(leaf_key), "-out", str(leaf_csr),
+         "-subj", f"/CN={leaf_cn}", "-provider", "default", "-provider", "oqsprovider"],
+        check=True, capture_output=True, env=env,
+    )
+    subprocess.run(
+        ["openssl", "x509", "-req", "-in", str(leaf_csr), "-CA", str(ca_crt),
+         "-CAkey", str(ca_key), "-CAcreateserial", "-out", str(leaf_crt), "-days", "365",
+         "-provider", "default", "-provider", "oqsprovider"],
+        check=True, capture_output=True, env=env,
+    )
+    return ca_crt, leaf_crt
+
+
+@pytest.fixture(scope="module")
+def chain(tmp_path_factory):
+    """A real (ca_cert, leaf_cert) pair, leaf actually signed by ca."""
+    tmp_path = tmp_path_factory.mktemp("pki-chain")
+    ca_path, leaf_path = _generate_ca_and_leaf(tmp_path, "mldsa65", "test-root-ca", "leaf.example")
+    return load_certificate(ca_path.read_bytes()), load_certificate(leaf_path.read_bytes())
+
+
+@pytest.fixture(scope="module")
+def unrelated_ca(tmp_path_factory):
+    """A second, entirely separate self-signed CA -- for proving
+    verify_chain() actually discriminates (a leaf must not verify
+    against a CA that didn't sign it)."""
+    tmp_path = tmp_path_factory.mktemp("pki-unrelated-ca")
+    cert_path = _generate_self_signed_cert(tmp_path, "mldsa65", "unrelated-ca")
+    return load_certificate(cert_path.read_bytes())
 
 
 @pytest.fixture(scope="module")
@@ -148,3 +200,34 @@ def test_unrecognized_oid_raises_pkierror():
 def test_load_certificate_rejects_garbage():
     with pytest.raises(PKIError):
         load_certificate(b"this is not a certificate")
+
+
+# --- verify_chain(): a real leaf cert signed by a separate CA cert,
+# not just a self-signed cert verifying against itself.
+
+def test_ca_is_self_signed_and_valid(chain):
+    ca, _leaf = chain
+    assert is_self_signed_and_valid(ca) is True
+
+
+def test_leaf_is_not_self_signed(chain):
+    _ca, leaf = chain
+    assert is_self_signed_and_valid(leaf) is False  # issuer != subject
+
+
+def test_verify_chain_succeeds_against_the_real_issuing_ca(chain):
+    ca, leaf = chain
+    assert verify_chain(leaf, ca) is True
+
+
+def test_verify_chain_fails_against_an_unrelated_ca(chain, unrelated_ca):
+    """The discriminating negative case: a leaf must not verify against
+    a CA that didn't actually sign it, even though that CA is itself a
+    perfectly valid, real, self-signed cert of the same algorithm."""
+    _ca, leaf = chain
+    assert verify_chain(leaf, unrelated_ca) is False
+
+
+def test_verify_chain_explicit_algorithm(chain):
+    ca, leaf = chain
+    assert verify_chain(leaf, ca, leaf_algorithm="ML-DSA-65") is True

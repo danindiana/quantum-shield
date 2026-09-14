@@ -85,9 +85,13 @@ module dependency graph.
   signature via `src/algorithms/signature.py` — the same tested liboqs
   binding as everywhere else. See
   [diagram 12](../diagrams/12-pki-cert-verify.svg).
-  - **No chain verification, key usage, extensions, or revocation
-    checking** — verifies one certificate's signature, not a trust
-    chain. See `FUTURE_DIRECTIONS.md`.
+  `verify_chain()` extends this to a real leaf→issuer link (issuer name
+  match, validity, signature) — verified against a real 2-level chain
+  and a real negative control (unrelated CA). See
+  [diagram 14](../diagrams/14-pki-chain-verify.svg).
+  - **No multi-step chains, key usage, extensions, or revocation
+    checking** — one leaf→issuer link, not a full trust chain. See
+    `FUTURE_DIRECTIONS.md`.
 
 **`src/protocols/tls/`** — a real TLS 1.3 handshake, PQ KEM only:
 - `demo.py`. Orchestrates real `openssl s_server`/`s_client` subprocesses

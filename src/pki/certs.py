@@ -153,6 +153,24 @@ def verify_certificate_signature(cert: x509.Certificate, issuer_public_key: byte
     return sig.verify(issuer_public_key, cert.tbs_certificate_bytes, cert.signature)
 
 
+def is_currently_valid(cert: x509.Certificate) -> bool:
+    """True if `now` falls within the cert's validity period.
+
+    The *_utc-suffixed properties were only added in cryptography 42.0;
+    this project's requirements.txt allows 41.0.0+, and the much older
+    system cryptography 3.4.8 (distinct from this project's own venv,
+    confirmed this session) has neither the _utc properties nor a
+    deprecation warning for the naive ones. Prefer _utc when available
+    (silences the deprecation warning on newer installs) and fall back
+    to the naive accessor (always UTC per X.509) otherwise."""
+    not_before = getattr(cert, "not_valid_before_utc", None) or \
+        cert.not_valid_before.replace(tzinfo=timezone.utc)
+    not_after = getattr(cert, "not_valid_after_utc", None) or \
+        cert.not_valid_after.replace(tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
+    return not_before <= now <= not_after
+
+
 def is_self_signed_and_valid(cert: x509.Certificate, algorithm: str = None) -> bool:
     """Convenience for the common case: a self-signed cert (issuer ==
     subject) whose own SubjectPublicKeyInfo is also the signing key.
@@ -162,20 +180,7 @@ def is_self_signed_and_valid(cert: x509.Certificate, algorithm: str = None) -> b
     algorithm_for_certificate()."""
     if cert.issuer != cert.subject:
         return False
-
-    # The *_utc-suffixed properties were only added in cryptography 42.0;
-    # this project's requirements.txt allows 41.0.0+, and the much older
-    # system cryptography 3.4.8 (distinct from this project's own venv,
-    # confirmed this session) has neither the _utc properties nor a
-    # deprecation warning for the naive ones. Prefer _utc when available
-    # (silences the deprecation warning on newer installs) and fall back
-    # to the naive accessor (always UTC per X.509) otherwise.
-    not_before = getattr(cert, "not_valid_before_utc", None) or \
-        cert.not_valid_before.replace(tzinfo=timezone.utc)
-    not_after = getattr(cert, "not_valid_after_utc", None) or \
-        cert.not_valid_after.replace(tzinfo=timezone.utc)
-    now = datetime.now(timezone.utc)
-    if not (not_before <= now <= not_after):
+    if not is_currently_valid(cert):
         return False
 
     if algorithm is None:
@@ -183,3 +188,27 @@ def is_self_signed_and_valid(cert: x509.Certificate, algorithm: str = None) -> b
 
     public_key = extract_raw_public_key(cert)
     return verify_certificate_signature(cert, public_key, algorithm)
+
+
+def verify_chain(leaf: x509.Certificate, issuer: x509.Certificate,
+                  leaf_algorithm: str = None) -> bool:
+    """Verifies that `leaf` was signed by `issuer` (a real two-certificate
+    chain step -- leaf's issuer name must match issuer's subject name,
+    leaf's signature must verify against issuer's public key, and leaf
+    must currently be within its validity period). Does NOT check that
+    `issuer` itself is trusted/self-signed/valid, chain depth beyond one
+    step, key usage (e.g. that `issuer` is actually allowed to sign
+    certificates), or name constraints -- see docs/FUTURE_DIRECTIONS.md.
+    Call is_self_signed_and_valid(issuer) separately to also confirm the
+    root of a 2-level chain is a valid, currently-unexpired self-signed
+    CA cert."""
+    if leaf.issuer != issuer.subject:
+        return False
+    if not is_currently_valid(leaf):
+        return False
+
+    if leaf_algorithm is None:
+        leaf_algorithm = algorithm_for_certificate(leaf)
+
+    issuer_public_key = extract_raw_public_key(issuer)
+    return verify_certificate_signature(leaf, issuer_public_key, leaf_algorithm)
