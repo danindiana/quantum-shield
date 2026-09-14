@@ -18,6 +18,17 @@ from ._liboqs import load_liboqs
 
 ALG_ML_DSA_65 = "ML-DSA-65"
 ALG_FALCON_512 = "Falcon-512"
+# liboqs's actual identifier for SLH-DSA-SHA2-128s (FIPS 205) does NOT
+# match the hyphenated "SLH-DSA-128s" form used elsewhere in this
+# project (e.g. configs/quantum_shield_config.yaml) -- that's a spec-
+# level display name, not what liboqs's OQS_SIG_new() expects. Verified
+# this session by checking liboqs's own sig.h: the real identifier is
+# "SLH_DSA_PURE_SHA2_128S" (underscores, "PURE", uppercase). Passing the
+# hyphenated form raises SignatureError -- which this project had
+# previously (incorrectly) logged as "SLH-DSA is disabled in this
+# liboqs build" (see docs/RESEARCH_NOTES.md's corrected entry). It was
+# never disabled; the identifier string was simply wrong.
+ALG_SLH_DSA_128S = "SLH_DSA_PURE_SHA2_128S"
 
 
 class OQS_SIG(ctypes.Structure):
@@ -138,3 +149,13 @@ class Falcon512(Signature):
 
     def __init__(self):
         super().__init__(ALG_FALCON_512)
+
+
+class SLHDSA128s(Signature):
+    """SLH-DSA-SHA2-128s (FIPS 205), NIST Security Level 1.
+    Hash-based signature -- much slower and larger than ML-DSA/Falcon,
+    but with a different, more conservative security assumption
+    (collision-resistant hashing, no lattice problem)."""
+
+    def __init__(self):
+        super().__init__(ALG_SLH_DSA_128S)

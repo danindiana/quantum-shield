@@ -129,13 +129,19 @@ guess about what would be nice to have. See
    pinned-tag rebuild). Also not done: a persistent/embeddable server
    (this is a one-shot demo, torn down after one handshake), and
    nothing here uses `src/kms/` for the classical cert's key material.
-7. **SLH-DSA support.** Configured as the primary `hash_signature` scheme
-   in `configs/quantum_shield_config.yaml`, but checked this session:
-   `Signature("SLH-DSA-128s")` raises — it's disabled at compile time in
-   the liboqs build currently installed. `src/algorithms/signature.py`'s
-   `Signature` class is already written generically enough to support it
-   once liboqs is rebuilt with it enabled; no code change needed there,
-   just a liboqs rebuild.
+7. ~~**SLH-DSA support.** Believed disabled at compile time.~~ **Done —
+   and the earlier conclusion was wrong.** `Signature("SLH-DSA-128s")`
+   does raise, but not because it's disabled: liboqs's actual identifier
+   for this algorithm is `"SLH_DSA_PURE_SHA2_128S"` (underscores,
+   `PURE`), not the hyphenated spec-display form. Added `SLHDSA128s`
+   (`ALG_SLH_DSA_128S`) with the correct identifier — verified a real
+   keypair→sign→verify round trip, added to the benchmark (sign is
+   ~300ms/call, ~6000x slower than ML-DSA-65, consistent with SLH-DSA's
+   hash-tree design having no rejection sampling — high but *stable*
+   cost, unlike ML-DSA/Falcon's variable-cost sampling). See the
+   correction entry in `docs/RESEARCH_NOTES.md` for the full story,
+   including why "it raised an error" isn't the same claim as "it's
+   disabled."
 
 ## Longer-term / needs more thought before starting
 

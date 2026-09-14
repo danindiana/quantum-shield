@@ -6,6 +6,36 @@ copied from a style guide. Newest first.
 
 ---
 
+### 2026-09-14 — "It raised an exception" and "the feature is disabled" are different claims
+
+**What happened:** earlier this session, `Signature("SLH-DSA-128s")`
+raising an error was logged as "SLH-DSA is disabled in this liboqs
+build." It wasn't. liboqs's real identifier for that algorithm is
+`"SLH_DSA_PURE_SHA2_128S"` — a naming-convention mismatch, not a
+disabled feature. Every per-algorithm CMake flag for it defaults to
+`ON`; nothing was ever actually turned off. Found by checking liboqs's
+own `sig.h` for the real identifier string, after which
+`Signature("SLH_DSA_PURE_SHA2_128S")` worked immediately — real keypair,
+real sign/verify round trip, real (if slow) FIPS 205 SLH-DSA-SHA2-128s.
+
+**Practice:** an exception at a library boundary tells you the call
+failed; it does not by itself tell you *why*. "Unavailable," "disabled,"
+"wrong argument," and "wrong name for a real thing" are different root
+causes that produce the identical exception and message shape. Before
+writing down the most likely-sounding explanation, check the concrete
+evidence that would distinguish between them — here, the library's own
+header for the string it actually expects — rather than accepting the
+first plausible story.
+
+**How to apply here:** this is the same failure mode as trusting a
+config file's claim without checking the real dependency, just one
+level more subtle — this session's own investigation of *that* problem
+produced a wrong conclusion by making exactly the mistake it was
+warning against. See the corrected entries in this file and in
+`docs/RESEARCH_NOTES.md`.
+
+---
+
 ### 2026-09-14 — A build that "succeeds" can still silently link the wrong dependency
 
 **What happened:** writing CI for building `oqs-provider` against a
@@ -182,11 +212,13 @@ right file.
 "SLH-DSA-128s (Long-term Signatures)" and "Hybrid Mode: Classical +
 Post-Quantum" as supported, alongside a "🛡️ All connections secured with
 post-quantum cryptography" line — while the command itself only slept in
-a loop and never opened a socket. Every claim in that banner was false:
-SLH-DSA is disabled in the installed liboqs build (confirmed
-independently in `docs/RESEARCH_NOTES.md`), hybrid mode has no
-implementation anywhere in the codebase, and no connection of any kind
-was ever secured because none was ever accepted.
+a loop and never opened a socket. Every claim in that banner was false
+regardless of SLH-DSA's actual availability (later found to have been
+mischaracterized too — see "Don't assume a config file's algorithm
+choices are actually available" below, and its correction note): the
+`server` command never used any signature algorithm at all, hybrid mode
+has no implementation anywhere in the codebase, and no connection of any
+kind was ever secured because none was ever accepted.
 
 **Practice:** a CLI's printed status/banner text is read by users as a
 factual claim about what the running code does, not as flavor text or
@@ -252,10 +284,19 @@ first entry describes.
 
 **What happened:** `configs/quantum_shield_config.yaml` names
 `SLH-DSA-128s` as the primary hash-based signature scheme. Checking it
-directly (`Signature("SLH-DSA-128s")`) found it's disabled at compile
-time in the currently installed liboqs build — a config/reality mismatch
-that would only surface as a runtime error the first time that code path
-actually ran.
+directly (`Signature("SLH-DSA-128s")`) raised an error — concluded at
+the time that it was disabled at compile time in the installed liboqs
+build.
+
+**Correction, added later the same session:** that conclusion was
+itself an unverified assumption, and it was wrong. The identifier
+string was wrong (liboqs's real one is `"SLH_DSA_PURE_SHA2_128S"`), not
+the algorithm's availability — see the dedicated correction entry in
+`docs/RESEARCH_NOTES.md`. This is a sharper version of the same lesson:
+"I got an exception, therefore X is unavailable" is itself an assumption
+that needs verifying (check the library's actual headers/identifiers)
+before treating it as a fact, not just a more careful-sounding one than
+trusting a config file at face value.
 
 **Practice:** when a config file names an external dependency's
 capability (an algorithm, a feature flag, a plugin), verify that

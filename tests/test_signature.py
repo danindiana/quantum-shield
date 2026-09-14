@@ -8,7 +8,9 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.algorithms.signature import MLDSA65, SignatureError, ALG_ML_DSA_65
+from src.algorithms.signature import (
+    MLDSA65, SLHDSA128s, SignatureError, ALG_ML_DSA_65, ALG_SLH_DSA_128S,
+)
 
 
 @pytest.fixture(scope="module")
@@ -17,6 +19,14 @@ def sig():
         return MLDSA65()
     except SignatureError as exc:
         pytest.skip(f"liboqs / {ALG_ML_DSA_65} unavailable: {exc}")
+
+
+@pytest.fixture(scope="module")
+def slh_sig():
+    try:
+        return SLHDSA128s()
+    except SignatureError as exc:
+        pytest.skip(f"liboqs / {ALG_SLH_DSA_128S} unavailable: {exc}")
 
 
 def test_reports_real_sizes_not_hardcoded(sig):
@@ -59,3 +69,31 @@ def test_verify_fails_with_wrong_public_key(sig):
 def test_rejects_wrong_length_secret_key(sig):
     with pytest.raises(SignatureError):
         sig.sign(b"too short", b"message")
+
+
+# --- SLH-DSA-SHA2-128s: was previously (incorrectly) logged as
+# "disabled in this liboqs build" -- it was never disabled, the
+# identifier string ("SLH-DSA-128s") just didn't match liboqs's actual
+# one ("SLH_DSA_PURE_SHA2_128S"). See ALG_SLH_DSA_128S's comment in
+# src/algorithms/signature.py and docs/RESEARCH_NOTES.md's corrected
+# entry. Fewer tests than ML-DSA-65 above -- same coverage shape,
+# not duplicated line for line.
+
+def test_slh_dsa_reports_real_fips205_sizes(slh_sig):
+    # SLH-DSA-SHA2-128s's actual FIPS 205 sizes.
+    assert slh_sig.length_public_key == 32
+    assert slh_sig.length_secret_key == 64
+    assert slh_sig.length_signature == 7856
+
+
+def test_slh_dsa_sign_verify_round_trip(slh_sig):
+    pk, sk = slh_sig.generate_keypair()
+    message = b"quantum-shield SLH-DSA integration test"
+    signature = slh_sig.sign(sk, message)
+    assert slh_sig.verify(pk, message, signature) is True
+
+
+def test_slh_dsa_verify_fails_on_tampered_message(slh_sig):
+    pk, sk = slh_sig.generate_keypair()
+    signature = slh_sig.sign(sk, b"original message")
+    assert slh_sig.verify(pk, b"tampered message", signature) is False

@@ -295,6 +295,58 @@ exists at all."
 
 ---
 
+## 2026-09-14 — Correction: SLH-DSA was never disabled — the identifier string was wrong
+
+The entry below this one concluded SLH-DSA-128s was "disabled at
+compile time in this build." That conclusion was wrong, and this
+corrects it rather than quietly editing it away.
+
+While investigating whether liboqs's CMake build actually gates SLH-DSA
+behind a disabled-by-default flag (it doesn't — `OQS_ENABLE_SIG_SLH_DSA`
+and every per-variant flag default to `ON`), checked liboqs's own
+`sig.h` and found the real algorithm identifier for what this project
+had been calling `"SLH-DSA-128s"` is actually
+**`"SLH_DSA_PURE_SHA2_128S"`** (underscores, `PURE`, uppercase) — a
+naming convention that changed at some point between liboqs's older
+SPHINCS+-era identifiers (still present as a *separate*, legacy
+`sphincs_*` algorithm family) and the current FIPS 205-standardized
+SLH-DSA family. The hyphenated `"SLH-DSA-128s"` form is a reasonable
+*spec-level display name* (matches how `configs/quantum_shield_config.yaml`
+and FIPS 205 itself refer to it) but was never a valid liboqs
+`OQS_SIG_new()` argument on this liboqs version. `SignatureError` on
+the wrong string looks identical to `SignatureError` on a genuinely
+disabled algorithm — same exception, same message shape — which is
+exactly how the earlier, wrong conclusion happened.
+
+Verified against the real installed liboqs (checked previously as
+"v0.14.1-dev"): `Signature("SLH_DSA_PURE_SHA2_128S")` constructs fine,
+reports real FIPS 205 sizes (32/64/7856 bytes for public key/secret
+key/signature), and a full keypair→sign→verify round trip succeeds.
+Added `SLHDSA128s` to `src/algorithms/signature.py` (`ALG_SLH_DSA_128S`
+constant with a comment explaining the naming mismatch), 3 new tests in
+`tests/test_signature.py` (53 total), and added it to
+`quantum_shield.py benchmark` (fewer iterations than ML-DSA/Falcon — see
+below — since it's much slower per call).
+
+**Real timing data, now that it's actually running:** SLH-DSA-SHA2-128s
+sign takes ~300ms/call — roughly **6000x slower** than ML-DSA-65's sign
+(~0.05ms) — with very *low* variance (stddev ~0.5% of mean), a sharp
+contrast with ML-DSA-65/Falcon-512's high-variance rejection-sampling
+signing (see the earlier statistical-benchmark entry). This is
+consistent with SLH-DSA's actual design: a fixed-structure hash-tree
+signature with no rejection sampling, so no internal retry loop — the
+cost is high but deterministic, rather than low but variable. Stated as
+consistent with the algorithm's known design, not independently
+verified against liboqs's own internal benchmarks.
+
+**Lesson applied going forward:** "this raises `SignatureError`" is not
+by itself evidence a feature is unavailable — it could just as easily
+mean the identifier string is wrong. Before concluding "disabled," check
+the library's own headers for the actual expected identifier, the way
+this correction did, not just the exception message.
+
+---
+
 ## 2026-09-14 — Algorithm availability audit
 
 Checked which algorithms are actually enabled in the currently installed

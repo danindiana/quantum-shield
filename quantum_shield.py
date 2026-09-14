@@ -135,14 +135,13 @@ def _print_stat_line(label, op, stat):
 
 def run_benchmarks():
     """Real timing measurements against the installed liboqs, for
-    ML-KEM-768, ML-DSA-65, and Falcon-512. Skips any algorithm that
-    isn't available in the current liboqs build rather than faking a
-    number for it (see docs/RESEARCH_NOTES.md's algorithm availability
-    audit, which found SLH-DSA-128s disabled in this build). Each
-    operation reports full statistics (mean/stddev/min/max/p95) from
-    _time_op(), not a single aggregate average -- see its docstring."""
+    ML-KEM-768, ML-DSA-65, Falcon-512, and SLH-DSA-SHA2-128s. Skips any
+    algorithm that isn't available in the current liboqs build rather
+    than faking a number for it. Each operation reports full statistics
+    (mean/stddev/min/max/p95) from _time_op(), not a single aggregate
+    average -- see its docstring."""
     from algorithms.kem import MLKEM768, KEMError
-    from algorithms.signature import MLDSA65, Falcon512, SignatureError
+    from algorithms.signature import MLDSA65, Falcon512, SLHDSA128s, SignatureError
 
     results = {}
 
@@ -161,15 +160,21 @@ def run_benchmarks():
         print(f"⚠️  ML-KEM-768 unavailable, skipping: {e}")
 
     message = b"quantum-shield benchmark message" * 8
-    for label, cls in (("ML-DSA-65", MLDSA65), ("Falcon-512", Falcon512)):
+    # SLH-DSA is a hash-based scheme with much higher per-call latency
+    # than ML-DSA/Falcon (larger signatures, more hashing) -- fewer
+    # iterations keeps the benchmark's total runtime reasonable without
+    # losing the statistics that matter (mean/stddev/p95).
+    algorithms = [("ML-DSA-65", MLDSA65, 200), ("Falcon-512", Falcon512, 200),
+                  ("SLH-DSA-SHA2-128s", SLHDSA128s, 20)]
+    for label, cls, n in algorithms:
         try:
             sig = cls()
             pk, sk = sig.generate_keypair()
             signature = sig.sign(sk, message)
             results[label] = {
-                "keypair": _time_op(sig.generate_keypair),
-                "sign": _time_op(lambda: sig.sign(sk, message)),
-                "verify": _time_op(lambda: sig.verify(pk, message, signature)),
+                "keypair": _time_op(sig.generate_keypair, n=n),
+                "sign": _time_op(lambda: sig.sign(sk, message), n=n),
+                "verify": _time_op(lambda: sig.verify(pk, message, signature), n=n),
             }
             for op, stat in results[label].items():
                 _print_stat_line(label, op, stat)

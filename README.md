@@ -11,7 +11,7 @@
 <p align="center">
   <img alt="FIPS 203" src="https://img.shields.io/badge/FIPS%20203-ML--KEM-39ffe0?style=flat-square&labelColor=0b0f14">
   <img alt="FIPS 204" src="https://img.shields.io/badge/FIPS%20204-ML--DSA-39ffe0?style=flat-square&labelColor=0b0f14">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-50%20passing-8f5cff?style=flat-square&labelColor=0b0f14">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-53%20passing-8f5cff?style=flat-square&labelColor=0b0f14">
   <img alt="Diagrams" src="https://img.shields.io/badge/diagrams-13-8f5cff?style=flat-square&labelColor=0b0f14">
   <img alt="PRs welcome" src="https://img.shields.io/badge/PRs-welcome-39ffe0?style=flat-square&labelColor=0b0f14">
   <a href="https://github.com/danindiana/quantum-shield/commits/master"><img alt="Last commit" src="https://img.shields.io/github/last-commit/danindiana/quantum-shield?style=flat-square&labelColor=0b0f14"></a>
@@ -42,9 +42,15 @@ through `openssl` + `oqs-provider`.
   (public key, secret key, ciphertext, shared secret) are read from the
   struct liboqs returns at runtime — not hardcoded.
 - **`src/algorithms/signature.py`** — `Signature` (generic, takes any
-  algorithm liboqs supports) plus `MLDSA65` and `Falcon512` convenience
-  subclasses: real keypair generation, signing, and verification via
-  liboqs's `OQS_SIG` C API, same struct-read approach.
+  algorithm liboqs supports) plus `MLDSA65`, `Falcon512`, and
+  `SLHDSA128s` convenience subclasses: real keypair generation, signing,
+  and verification via liboqs's `OQS_SIG` C API, same struct-read
+  approach. SLH-DSA was believed disabled earlier this session — it
+  wasn't; the identifier string was wrong (see
+  `docs/RESEARCH_NOTES.md`'s correction). Its sign is ~6000x slower than
+  ML-DSA-65's but far more consistent (low variance vs. ML-DSA/Falcon's
+  rejection-sampling-driven variance) — a real measured contrast, not a
+  guess.
 - **`simple_ssh_keygen.py`** — generates real post-quantum SSH keypairs
   (ML-DSA-65 or Falcon-512) using the library above. Pass `--encrypt` to
   store the private key encrypted at rest (via `KeyStore`, passphrase
@@ -99,7 +105,7 @@ through `openssl` + `oqs-provider`.
   verified with a real negative control — mismatched groups fail the
   handshake outright. See [diagram 13](diagrams/13-tls-pq-handshake.svg)
   and `examples/tls_demo.py`.
-- **50 passing tests** (`tests/test_kem.py`, `tests/test_signature.py`,
+- **53 passing tests** (`tests/test_kem.py`, `tests/test_signature.py`,
   `tests/test_setup.py`, `tests/test_kms.py`, `tests/test_pki_certs.py`,
   `tests/test_tls_demo.py`) run against the actual installed
   `liboqs.so`, real `cryptography` primitives, and real

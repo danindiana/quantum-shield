@@ -5,6 +5,16 @@ individually in this fork in favor of one current summary).
 
 ## Working today
 
+- **SLH-DSA correction (2026-09-14)**: earlier this session (see below)
+  this project concluded SLH-DSA-128s was "disabled at compile time."
+  That was wrong — the identifier string was wrong
+  (`"SLH-DSA-128s"` vs. liboqs's actual `"SLH_DSA_PURE_SHA2_128S"`), not
+  the algorithm. Added `SLHDSA128s` to `src/algorithms/signature.py`
+  with the correct identifier, 3 new tests (53 total), and included it
+  in `quantum_shield.py benchmark` (real number: sign ~300ms/call,
+  ~6000x slower than ML-DSA-65, but with much *lower* variance —
+  consistent with its non-rejection-sampling hash-tree design). See the
+  correction entry in `docs/RESEARCH_NOTES.md`.
 - **`src/protocols/tls/demo.py` (2026-09-14)**: a real TLS 1.3 handshake
   with ML-KEM-768 for key exchange, via `openssl s_server`/`s_client` +
   `oqs-provider`. Authenticated with a classical ECDSA cert, not a PQ
@@ -70,7 +80,8 @@ individually in this fork in favor of one current summary).
   `src/algorithms/kem.py`/`signature.py` and writes them to
   `benchmarks/results/<timestamp>.json`, instead of printing simulated
   output. Skips any algorithm unavailable in the current liboqs build
-  (SLH-DSA) rather than faking a number.
+  rather than faking a number (originally believed to exclude SLH-DSA
+  for this reason — see the correction below, it's included now).
 - **`quantum_shield.py server`** is now a real ML-KEM-768 key-exchange
   demo over an actual TCP socket, testable against the new
   `examples/kem_demo_client.py` — verified both sides derive the same
@@ -128,13 +139,6 @@ individually in this fork in favor of one current summary).
   the PQ-*KEM* half (key exchange), not PQ-*signed* server certs.
 - **A persistent/embeddable PQ-KEM TLS server** — `demo.py` is a
   one-shot handshake torn down immediately, not a long-running service.
-- SLH-DSA (hash-based signatures, FIPS 205) — configured as the primary
-  `hash_signature` scheme in `configs/quantum_shield_config.yaml`. Checked
-  this session: `Signature("SLH-DSA-128s")` raises `SignatureError` —
-  it's disabled at compile time in the liboqs build on this machine, even
-  though `src/algorithms/signature.py`'s `Signature` class is written
-  generically enough to support any algorithm liboqs has compiled in.
-  Would need a liboqs rebuild with SLH-DSA enabled to use.
 
 ## Known limitation carried over from the original project
 
