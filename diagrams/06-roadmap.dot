@@ -13,15 +13,16 @@ digraph roadmap {
   done2 [label="done: quantum_shield.py\nbenchmark/server call the\nreal library, real TCP demo", color="#39ffe0"];
   done3 [label="done: src/kms/store.py --\nsave/load/list/delete/\nrotate/revoke/history", color="#39ffe0"];
   done4 [label="done: src/pki/certs.py --\nverifies real PQ X.509 certs\n(structure via cryptography,\nsignature via our own binding)", color="#39ffe0"];
+  done5 [label="done: src/protocols/tls/demo.py --\nreal TLS 1.3 handshake, PQ KEM\ngroup (classical cert for auth --\nPQ-signed certs need OpenSSL 3.2+,\nwe have 3.0.2, checked)", color="#39ffe0"];
 
-  next1 [label="next: SLH-DSA support\nneeds a liboqs rebuild with\nit compiled in (checked:\ncurrently disabled)", color="#ffcb47"];
+  next1 [label="next: SLH-DSA support\nneeds a liboqs rebuild with\nit compiled in (checked: disabled\nin 0.14.1-dev AND fresh 0.15.0)", color="#ffcb47"];
   next2 [label="next: src/pki/ chain verification\n-- current code verifies ONE\ncert's signature, not a chain,\nkey usage, or revocation"];
-  next3 [label="next: src/protocols/tls/\nactual PQ-TLS server/client,\nnot just openssl CLI certs"];
+  next3 [label="next: full PQ-authenticated TLS\n-- needs OpenSSL 3.2+, not\njust a newer oqs-provider"];
   hybrid [label="later: hybrid mode\n(classical + PQ) wiring --\nconfigured but unimplemented\nin configs/quantum_shield_config.yaml", color="#8a99a8"];
 
-  done1 -> done2 -> done3 -> done4;
-  done4 -> next1;
-  done4 -> next2;
-  next2 -> next3;
+  done1 -> done2 -> done3 -> done4 -> done5;
+  done5 -> next1;
+  done5 -> next2;
+  done5 -> next3;
   next3 -> hybrid;
 }

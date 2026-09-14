@@ -5,6 +5,20 @@ individually in this fork in favor of one current summary).
 
 ## Working today
 
+- **`src/protocols/tls/demo.py` (2026-09-14)**: a real TLS 1.3 handshake
+  with ML-KEM-768 for key exchange, via `openssl s_server`/`s_client` +
+  `oqs-provider`. Authenticated with a classical ECDSA cert, not a PQ
+  one — checked this session that authenticating with a PQ-signed cert
+  needs OpenSSL 3.2+ (we have 3.0.2), reproducing the exact
+  "unknown certificate type" failure oqs-provider's own docs describe.
+  Proof the PQ group was used is by construction (one group offered on
+  each side) plus a real negative control (mismatched groups fail
+  outright, verified). 2 new tests (`tests/test_tls_demo.py`, 50 total),
+  demoed in `examples/tls_demo.py`. 13th diagram
+  (`diagrams/13-tls-pq-handshake.svg`). Per the "diagrams rot" lesson,
+  checked and fixed every existing diagram/doc referencing
+  `src/protocols/tls/` (diagrams 01 and 06, `SYSTEM_ARCHITECTURE.md`,
+  `FUTURE_DIRECTIONS.md`) before finishing.
 - **Statistical benchmarks (2026-09-14)**: `_time_op()` in
   `quantum_shield.py` now times every individual call (not one
   wall-clock span / n) and reports mean/stddev/min/max/p95 per
@@ -108,10 +122,12 @@ individually in this fork in favor of one current summary).
 - `src/pki/` **chain verification, key usage/extensions, revocation
   (CRL/OCSP)** — current code verifies one certificate's signature, not
   a trust chain or anything else a real validator needs.
-- `src/protocols/tls/` — TLS integration beyond manual `openssl` CLI
-  certificate generation (i.e., an actual PQ-TLS server/client, not just
-  cert issuance, and not the unauthenticated demo in `quantum_shield.py
-  server`).
+- **Full PQ-authenticated TLS** — needs OpenSSL 3.2+, a bigger
+  environment change than a pinned-tag rebuild; not something a newer
+  `oqs-provider` alone fixes. `src/protocols/tls/demo.py` only covers
+  the PQ-*KEM* half (key exchange), not PQ-*signed* server certs.
+- **A persistent/embeddable PQ-KEM TLS server** — `demo.py` is a
+  one-shot handshake torn down immediately, not a long-running service.
 - SLH-DSA (hash-based signatures, FIPS 205) — configured as the primary
   `hash_signature` scheme in `configs/quantum_shield_config.yaml`. Checked
   this session: `Signature("SLH-DSA-128s")` raises `SignatureError` —

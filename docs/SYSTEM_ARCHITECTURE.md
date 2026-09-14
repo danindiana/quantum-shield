@@ -89,9 +89,24 @@ module dependency graph.
     checking** — verifies one certificate's signature, not a trust
     chain. See `FUTURE_DIRECTIONS.md`.
 
-**Not yet connected to anything:**
-- `src/protocols/tls/` — directory skeleton only, no files. See
-  `FUTURE_DIRECTIONS.md` for what it's meant to hold.
+**`src/protocols/tls/`** — a real TLS 1.3 handshake, PQ KEM only:
+- `demo.py`. Orchestrates real `openssl s_server`/`s_client` subprocesses
+  negotiating a post-quantum KEM group (`mlkem768` by default) for key
+  exchange. Authenticates with a **classical** ECDSA certificate, not a
+  PQ-signed one — checked this session against this project's OpenSSL
+  3.0.2 and confirmed (matching oqs-provider's own documented
+  limitation) that authenticating a live TLS connection with a
+  PQ-signed certificate needs OpenSSL 3.2+; generating one (which
+  `test_pq_tls.py`/`src/pki/certs.py` already do) works fine on 3.0, but
+  loading one into `s_server` does not. Proof that the PQ group was
+  actually used is by construction, not by parsing a "negotiated group"
+  field: both sides offer exactly one, identical group, and a real
+  negative control (mismatched groups) confirms the handshake fails
+  outright when they don't match. See
+  [diagram 13](../diagrams/13-tls-pq-handshake.svg).
+  - **Not a general TLS client/server library** — one handshake, one
+    group pair, meant to demonstrate and test the capability, not to be
+    embedded in a real service. See `FUTURE_DIRECTIONS.md`.
 
 ## Why the struct-mirroring approach, specifically
 

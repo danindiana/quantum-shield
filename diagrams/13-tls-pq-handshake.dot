@@ -1,0 +1,30 @@
+digraph tlsdemo {
+  bgcolor="#0b0f14";
+  rankdir=TB;
+  fontname="Helvetica";
+  fontcolor="#c9d1d9";
+  labelloc="t";
+  label="src/protocols/tls/demo.py — real TLS 1.3 handshake with a PQ KEM group";
+  fontsize=20;
+  node [style=filled, fillcolor="#161b22", color="#39ffe0", fontcolor="#e6edf3", fontname="Helvetica", penwidth=2, shape=box, margin="0.25,0.15"];
+  edge [color="#8f5cff", fontcolor="#c9d1d9", fontname="Helvetica", penwidth=1.6, fontsize=11];
+
+  limit [label="LIMIT FOUND THIS SESSION:\nauthenticating with a PQ-SIGNED\ncertificate needs OpenSSL 3.2+\n(oqs-provider's own docs) --\nthis project has OpenSSL 3.0.2", shape=note, color="#ff2ec4"];
+
+  classicalcert [label="generate_classical_cert()\nplain openssl, EC P-256 --\nno oqs-provider involved", color="#ffcb47"];
+  server [label="openssl s_server\n-groups mlkem768\n(classical cert for auth)"];
+  client_pos [label="openssl s_client\n-groups mlkem768\n(same group)", color="#39ffe0"];
+  client_neg [label="openssl s_client\n-groups mlkem1024\n(DIFFERENT group)", color="#ff2ec4"];
+
+  success [label="handshake succeeds:\nreturncode 0,\nCipher is TLS_AES_256_GCM_SHA384", color="#39ffe0"];
+  failure [label="handshake fails:\nreturncode 1,\nCipher is (NONE),\nssl alert: handshake failure", color="#ff2ec4"];
+
+  proof [label="proof by construction: only ONE\ngroup offered on each side --\nsuccess is only possible if that\nexact PQ group was used", shape=note, color="#8a99a8"];
+
+  limit -> classicalcert [style=dotted, label="shapes the design"];
+  classicalcert -> server;
+  server -> client_pos -> success;
+  server -> client_neg -> failure;
+  success -> proof [style=dotted];
+  failure -> proof [style=dotted, label="negative control,\nverified this session"];
+}

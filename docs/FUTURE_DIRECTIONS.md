@@ -110,9 +110,25 @@ guess about what would be nice to have. See
      on other `oqs-provider` versions. Adding more algorithms means
      verifying their OID against a real build first, the same way these
      two were, not guessing from a spec.
-6. **`src/protocols/tls/`** — an actual PQ-TLS server/client using the
-   library, not just manual certificate issuance via shell-out to
-   `openssl`.
+6. ~~**`src/protocols/tls/`** — an actual PQ-TLS handshake.~~
+   **Started.** `demo.py` orchestrates a real TLS 1.3 handshake using
+   ML-KEM-768 for key exchange (openssl `s_server`/`s_client` +
+   oqs-provider), verified with both a positive case and a negative
+   control (mismatched groups fail outright). Authenticates with a
+   **classical** cert, not a PQ one.
+
+   **Not done, and this is real scope, not a quick follow-up:** a
+   fully PQ-*authenticated* TLS connection (PQ-signed server cert, not
+   just a PQ KEM group) needs **OpenSSL 3.2+** — checked this session
+   against this project's OpenSSL 3.0.2 and reproduced the exact
+   documented limitation (oqs-provider's own USAGE.md: "using QSC CA's
+   and server certificates is not supported in versions prior to
+   OpenSSL 3.2"). This isn't something a newer oqs-provider alone would
+   fix — it needs a newer OpenSSL, which is a bigger environment change
+   than anything else in this list (a `libssl-dev` upgrade path, not a
+   pinned-tag rebuild). Also not done: a persistent/embeddable server
+   (this is a one-shot demo, torn down after one handshake), and
+   nothing here uses `src/kms/` for the classical cert's key material.
 7. **SLH-DSA support.** Configured as the primary `hash_signature` scheme
    in `configs/quantum_shield_config.yaml`, but checked this session:
    `Signature("SLH-DSA-128s")` raises — it's disabled at compile time in

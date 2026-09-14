@@ -22,7 +22,8 @@ digraph architecture {
   crypto [label="cryptography library\n(AESGCM, Scrypt, X.509 parser)", color="#ff2ec4", shape=box3d];
   pki [label="src/pki/certs.py\ncert signature verification", color="#39ffe0"];
   pkidemo [label="examples/pki_verify_demo.py"];
-  future [label="src/protocols/tls/\n(planned, empty today)", color="#8a99a8", style=dashed];
+  tlsdemo_mod [label="src/protocols/tls/demo.py\nreal TLS 1.3 + PQ KEM group", color="#39ffe0"];
+  tlsdemo_ex [label="examples/tls_demo.py"];
 
   cli -> kem [label="benchmark, server"];
   cli -> sig [label="benchmark"];
@@ -35,9 +36,9 @@ digraph architecture {
   pkidemo -> pki;
   pki -> crypto [label="X.509 structure\nparsing only"];
   pki -> sig [label="actual signature\nverification"];
+  tlsdemo_ex -> tlsdemo_mod;
+  tlsdemo_mod -> openssl [label="s_server/s_client,\nPQ KEM group only"];
   kem -> liboqs_helper;
   sig -> liboqs_helper;
   liboqs_helper -> liboqs [label="ctypes.CDLL"];
-  future -> kem [style=dashed, label="would consume"];
-  future -> sig [style=dashed, label="would consume"];
 }
