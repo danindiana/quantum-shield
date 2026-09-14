@@ -6,6 +6,32 @@ copied from a style guide. Newest first.
 
 ---
 
+### 2026-09-14 — Revocation and deletion are different operations; don't conflate them
+
+**What happened:** designing `revoke_key()` for `src/kms/store.py`, the
+first instinct was to make revocation delete or overwrite the key
+material. Realized this would be wrong: a revoked *signing* key's public
+half is often still needed to verify signatures made before the
+revocation, and the encrypted secret material itself is harmless at
+rest (it's still passphrase-protected) — the actual security property
+revocation needs to provide is "don't let anyone use this for anything
+new," not "destroy the evidence it ever existed."
+
+**Practice:** when adding a revocation concept to anything, separate
+three distinct questions before writing code: (1) can this still be
+*read* for historical/verification purposes? (2) can this still be
+*used* for new operations? (3) should the underlying material eventually
+be *destroyed*? These often have different answers, and conflating them
+into a single "revoked = gone" operation forecloses legitimate future
+needs.
+
+**How to apply here:** `KeyStore.revoke_key()` answers (2) — no new use
+without an explicit `allow_revoked=True` override — while leaving (1)
+available and (3) as a separate, not-yet-implemented operation (plain
+`delete_key()` already exists for that, unchanged by revocation).
+
+---
+
 ### 2026-09-14 — Diagrams rot exactly like duplicated code; check them when the thing they describe changes
 
 **What happened:** `diagrams/01-system-architecture.dot` and

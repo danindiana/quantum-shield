@@ -52,11 +52,18 @@ individually in this fork in favor of one current summary).
   it, behavior is unchanged from before. Verified both modes end-to-end,
   including a full non-interactive subprocess run with a redirected
   `HOME`.
+- **`src/kms/` rotation and revocation** — `rotate_key()` archives the
+  current active generation (status "rotated") and activates a new one
+  under a possibly-different passphrase; `revoke_key()` marks the active
+  generation revoked in place, and `load_keypair()` then refuses it
+  unless `allow_revoked=True`. `list_history()` returns every
+  generation's status, oldest first. 8 new tests (19 in
+  `tests/test_kms.py`, 35 total). Demoed in
+  `examples/kms_rotation_demo.py`. 11th diagram
+  (`diagrams/11-kms-rotation-revocation.svg`).
 
 ## Not yet started
 
-- `src/kms/` **rotation and revocation** — the store has save/load/list/
-  delete; no concept of superseding a key or an expiry/revocation list.
 - `src/pki/` — certificate authority / trust chain handling. Empty.
 - `src/protocols/tls/` — TLS integration beyond manual `openssl` CLI
   certificate generation (i.e., an actual PQ-TLS server/client, not just

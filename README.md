@@ -11,8 +11,8 @@
 <p align="center">
   <img alt="FIPS 203" src="https://img.shields.io/badge/FIPS%20203-ML--KEM-39ffe0?style=flat-square&labelColor=0b0f14">
   <img alt="FIPS 204" src="https://img.shields.io/badge/FIPS%20204-ML--DSA-39ffe0?style=flat-square&labelColor=0b0f14">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-27%20passing-8f5cff?style=flat-square&labelColor=0b0f14">
-  <img alt="Diagrams" src="https://img.shields.io/badge/diagrams-10-8f5cff?style=flat-square&labelColor=0b0f14">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-35%20passing-8f5cff?style=flat-square&labelColor=0b0f14">
+  <img alt="Diagrams" src="https://img.shields.io/badge/diagrams-11-8f5cff?style=flat-square&labelColor=0b0f14">
   <img alt="PRs welcome" src="https://img.shields.io/badge/PRs-welcome-39ffe0?style=flat-square&labelColor=0b0f14">
   <a href="https://github.com/danindiana/quantum-shield/commits/master"><img alt="Last commit" src="https://img.shields.io/github/last-commit/danindiana/quantum-shield?style=flat-square&labelColor=0b0f14"></a>
 </p>
@@ -62,10 +62,15 @@ through `openssl` + `oqs-provider`.
   replay protection. See [diagram 09](diagrams/09-demo-server-client.svg).
 - **`src/kms/store.py`** — `KeyStore`: passphrase-encrypted at-rest
   storage for any keypair from the library above (AES-256-GCM, scrypt
-  KDF, key name bound as AEAD associated data), now wired into
-  `simple_ssh_keygen.py --encrypt` (see above). See
-  [diagram 10](diagrams/10-kms-store.svg) and `examples/kms_demo.py`.
-- **27 passing tests** (`tests/test_kem.py`, `tests/test_signature.py`,
+  KDF, key name bound as AEAD associated data), wired into
+  `simple_ssh_keygen.py --encrypt` (see above). Includes **key rotation**
+  (`rotate_key()` archives the old generation, activates a new one under
+  a possibly-different passphrase) and **revocation**
+  (`revoke_key()` + `load_keypair(..., allow_revoked=True)`). See
+  [diagram 10](diagrams/10-kms-store.svg),
+  [diagram 11](diagrams/11-kms-rotation-revocation.svg),
+  `examples/kms_demo.py`, and `examples/kms_rotation_demo.py`.
+- **35 passing tests** (`tests/test_kem.py`, `tests/test_signature.py`,
   `tests/test_setup.py`, `tests/test_kms.py`) run against the actual
   installed `liboqs.so` and real `cryptography` primitives — round-trip
   encapsulate/decapsulate, sign/verify, encrypt/decrypt, and negative
@@ -159,16 +164,17 @@ assert loaded["secret_key"] == sk
 
 Carried over honestly from the project's own status tracking rather than
 overstated: SSH deployment (`scripts/ssh/`) and TLS certificate generation
-work today; `src/kms/` now has a real, tested key store wired into
-`simple_ssh_keygen.py --encrypt` (see above) but still has no rotation or
-revocation; PKI (`src/pki/`) and full protocol integration
-(`src/protocols/`) are still empty directories — architecture laid out,
-not yet implemented. See [`PROGRESS.md`](PROGRESS.md) and
+work today; `src/kms/` now has a real, tested key store with rotation and
+revocation, wired into `simple_ssh_keygen.py --encrypt` (see above), but
+still no hardware-backed storage or multi-user access control; PKI
+(`src/pki/`) and full protocol integration (`src/protocols/`) are still
+empty directories — architecture laid out, not yet implemented. See
+[`PROGRESS.md`](PROGRESS.md) and
 [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
 
 ## Diagrams
 
-10 Graphviz diagrams (dark background / neon palette), source `.dot`
+11 Graphviz diagrams (dark background / neon palette), source `.dot`
 alongside rendered `.svg`/`.png` in [`diagrams/`](diagrams/):
 
 | # | Diagram | What it shows |
@@ -182,7 +188,8 @@ alongside rendered `.svg`/`.png` in [`diagrams/`](diagrams/):
 | 07 | [Trust boundary](diagrams/07-trust-boundary.svg) | What's upstream/vetted vs. this repo's own (not audited) code |
 | 08 | [Test coverage map](diagrams/08-test-coverage-map.svg) | What's covered by pytest vs. exercised manually vs. untested |
 | 09 | [Demo server/client](diagrams/09-demo-server-client.svg) | The real over-the-wire ML-KEM-768 handshake, and its explicit non-goals |
-| 10 | [KMS store](diagrams/10-kms-store.svg) | Passphrase-encrypted key storage: scrypt + AES-256-GCM, and what's still missing |
+| 10 | [KMS store](diagrams/10-kms-store.svg) | Passphrase-encrypted key storage: scrypt + AES-256-GCM save/load |
+| 11 | [KMS rotation/revocation](diagrams/11-kms-rotation-revocation.svg) | Multi-generation rotation and revocation, with `allow_revoked=True` |
 
 ## Documentation
 
@@ -212,7 +219,7 @@ quantum-shield/
 ├── scripts/             # SSH deployment automation
 ├── configs/              # SSH / algorithm configuration
 ├── benchmarks/           # timing results land here (gitignored)
-├── examples/             # kem_demo_client.py, kms_demo.py
+├── examples/             # kem_demo_client.py, kms_demo.py, kms_rotation_demo.py
 ├── simple_ssh_keygen.py, test_pq_tls.py, test_liboqs.py
 └── quantum_shield.py     # CLI entry point (setup/test/status/benchmark/server)
 ```

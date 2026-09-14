@@ -56,12 +56,28 @@ guess about what would be nice to have. See
    identical output to before; encrypt mode round-trips correctly
    through `KeyStore.load_keypair()`.
 
+   ~~**Key rotation.**~~ **Done.** `rotate_key()` archives the current
+   active generation (status `"rotated"`) and activates a new one, under
+   a passphrase that need not match the old generation's. `list_history()`
+   returns every generation's status, oldest first. 8 new tests, demoed
+   in `examples/kms_rotation_demo.py`. See
+   [diagram 11](../diagrams/11-kms-rotation-revocation.svg).
+
+   ~~**Revocation.**~~ **Done.** `revoke_key()` marks the active
+   generation revoked in place; `load_keypair()` then refuses it unless
+   `allow_revoked=True` is passed explicitly (kept available on purpose —
+   e.g. to still verify old signatures against a revoked signing key's
+   public half).
+
    **Not done yet, and this remains a real gap:**
-   - **Key rotation** — no way to mark a stored key as superseded or
-     roll to a new one.
-   - **Revocation** — no revocation list or expiry concept at all.
    - **No hardware-backed storage** (HSM/TPM) — this is a plain file on
      disk, encrypted, but a file nonetheless.
+   - **No multi-user access control** — anything with filesystem access
+     to the keystore directory and the right passphrase can read a key;
+     there's no separate authorization layer.
+   - **No automatic/scheduled rotation** — `rotate_key()` is a manual
+     operation a caller invokes; nothing tracks key age or expiry to
+     prompt it.
 5. **`src/pki/`** — certificate authority / trust chain handling beyond
    the single self-signed cert `test_pq_tls.py` generates via the
    `openssl` CLI.

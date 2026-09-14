@@ -1,0 +1,43 @@
+digraph rotation {
+  bgcolor="#0b0f14";
+  rankdir=TB;
+  fontname="Helvetica";
+  fontcolor="#c9d1d9";
+  labelloc="t";
+  label="KeyStore key lifecycle — rotate_key() and revoke_key()";
+  fontsize=20;
+  node [style=filled, fillcolor="#161b22", color="#39ffe0", fontcolor="#e6edf3", fontname="Helvetica", penwidth=2, shape=box, margin="0.25,0.15"];
+  edge [color="#8f5cff", fontcolor="#c9d1d9", fontname="Helvetica", penwidth=1.6, fontsize=11];
+
+  g1active [label="<name>.qskey.json\ngeneration 1, status=active", color="#39ffe0"];
+  rotate1 [label="rotate_key(name,\nnew_pk, new_sk,\nnew_passphrase)", shape=diamond, color="#ff2ec4"];
+  g1archived [label="<name>.g1.qskey.json\ngeneration 1, status=rotated\n(still decryptable with its\nOWN original passphrase)", color="#ffcb47"];
+  g2active [label="<name>.qskey.json\ngeneration 2, status=active\n(new passphrase, new material)", color="#39ffe0"];
+
+  rotate2 [label="rotate_key(name, ...)\nagain", shape=diamond, color="#ff2ec4"];
+  g2archived [label="<name>.g2.qskey.json\ngeneration 2, status=rotated", color="#ffcb47"];
+  g3active [label="<name>.qskey.json\ngeneration 3, status=active", color="#39ffe0"];
+
+  revoke [label="revoke_key(name, reason)", shape=diamond, color="#ff2ec4"];
+  revoked [label="<name>.qskey.json\nstatus=revoked (in place --\nsame generation, no new file)", color="#ff2ec4"];
+
+  loadnormal [label="load_keypair(name, pw)\n(allow_revoked=False, default)", shape=diamond];
+  refused [label="KeyStoreError raised\n-- secret key withheld", color="#ff2ec4"];
+  loadforced [label="load_keypair(name, pw,\nallow_revoked=True)", shape=diamond];
+  granted [label="key material returned --\ne.g. to verify old signatures", color="#39ffe0"];
+
+  history [label="list_history(name)\nreturns every generation,\noldest first, current status\nfor each", shape=note, color="#8a99a8"];
+
+  g1active -> rotate1 -> g1archived;
+  rotate1 -> g2active;
+  g2active -> rotate2 -> g2archived;
+  rotate2 -> g3active;
+
+  g3active -> revoke -> revoked;
+  revoked -> loadnormal -> refused;
+  revoked -> loadforced -> granted;
+
+  g1archived -> history [style=dotted];
+  g2archived -> history [style=dotted];
+  g3active -> history [style=dotted];
+}

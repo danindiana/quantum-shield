@@ -50,16 +50,23 @@ module dependency graph.
 - `examples/kem_demo_client.py`, `examples/kms_demo.py` — standalone
   usage demonstrations, not part of the CLI.
 
-**`src/kms/`** — key storage, started (rotation/revocation not yet):
+**`src/kms/`** — key storage, including rotation and revocation:
 - `store.py` — `KeyStore`. Takes any `(public_key, secret_key)` pair
   from `src/algorithms/` and encrypts it at rest: scrypt derives a
   256-bit AES key from a passphrase, AES-256-GCM encrypts the key
   material with the store entry's `name` bound in as AEAD associated
   data (so a ciphertext file can't be silently swapped between entries
-  without decryption failing). One JSON file per key on disk, metadata
-  in plaintext, key bytes encrypted. Wired into `simple_ssh_keygen.py`'s
-  `--encrypt` flag (default behavior unchanged without it). See
-  [diagram 10](../diagrams/10-kms-store.svg).
+  without decryption failing). One JSON file per key generation on disk
+  (`<name>.qskey.json` for the active generation,
+  `<name>.g<N>.qskey.json` for archived ones), metadata in plaintext, key
+  bytes encrypted. Wired into `simple_ssh_keygen.py`'s `--encrypt` flag
+  (default behavior unchanged without it). See
+  [diagram 10](../diagrams/10-kms-store.svg) for save/load, and
+  [diagram 11](../diagrams/11-kms-rotation-revocation.svg) for
+  `rotate_key()`/`revoke_key()`/`list_history()`.
+  - **No hardware-backed storage, no multi-user access control, no
+    automatic/scheduled rotation** — all still real gaps, see
+    `FUTURE_DIRECTIONS.md`.
 
 **Not yet connected to anything:**
 - `src/pki/`, `src/protocols/tls/` — directory skeleton only, no files.

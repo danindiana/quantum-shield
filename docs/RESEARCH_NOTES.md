@@ -6,6 +6,30 @@ background (that's in `NIST_COMPLIANCE.md`).
 
 ---
 
+## 2026-09-14 — Added key rotation and revocation to KeyStore
+
+Extended `src/kms/store.py` with `rotate_key()`, `revoke_key()`, and
+`list_history()`. Design choice worth recording: rotation **never
+decrypts the key being rotated away** — it only needs the old record's
+plaintext metadata (algorithm, key type, generation number) to archive
+it, not its secret key material. This means rotating to a new keypair
+under a *lost* old passphrase is still possible (you can't recover the
+old key, but you can still supersede it with a new one) — a deliberate
+property, not an oversight, verified by `test_rotate_archives_old_generation_and_activates_new`
+using two different passphrases for the two generations.
+
+Revocation is intentionally **not** deletion: `revoke_key()` marks the
+active generation's status in place and `load_keypair()` refuses it by
+default, but the encrypted material is still there and recoverable with
+`allow_revoked=True` — this matters because a revoked *signing* key's
+public half may still be legitimately needed to verify signatures made
+before revocation. Confirmed this distinction actually works end-to-end
+in `examples/kms_rotation_demo.py`, not just asserted in a docstring.
+
+8 new tests (19 total in `tests/test_kms.py`, 35 overall).
+
+---
+
 ## 2026-09-14 — Wired KeyStore into simple_ssh_keygen.py, and found two stale diagrams doing it
 
 Added a `--encrypt` flag to `simple_ssh_keygen.py`: with it, the private

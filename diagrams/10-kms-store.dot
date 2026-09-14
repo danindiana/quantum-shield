@@ -22,7 +22,7 @@ digraph kms {
   wrongpw [label="WrongPassphraseError\n(bad passphrase OR\ntampered file --\nAEAD can't tell which)", color="#ff2ec4"];
   correctpw [label="original keypair bytes,\nverified round-trip in\ntests/test_kms.py", color="#39ffe0"];
 
-  missing [label="NOT included:\nkey rotation, multi-user ACL,\nHSM/TPM backing --\nsee FUTURE_DIRECTIONS.md", shape=note, color="#8a99a8"];
+  missing [label="NOT included:\nmulti-user ACL, HSM/TPM backing --\n(rotation/revocation exist now,\nsee diagram 11) --\nsee FUTURE_DIRECTIONS.md", shape=note, color="#8a99a8"];
 
   keygen -> save;
   sshkeygen -> save [label="wired in --\nverified this session"];
