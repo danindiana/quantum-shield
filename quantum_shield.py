@@ -4,10 +4,15 @@ Quantum Shield - Post-Quantum Cryptography Implementation
 Entry point for the quantum shield system
 """
 
+import json
+import socket
+import struct
 import sys
+import time
 import argparse
 import logging
 import yaml
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add src to path for imports
@@ -60,8 +65,11 @@ def run_basic_tests():
         print("❌ Python 3.8+ required")
         return False
     
-    # Test 2: Required directories
-    required_dirs = ["src", "tests", "docs", "configs"]
+    # Test 2: Required directories (kept in sync with
+    # tests/test_setup.py::test_project_structure -- see
+    # docs/FUTURE_DIRECTIONS.md item 5 for why this matters)
+    required_dirs = ["src", "tests", "docs", "scripts", "configs",
+                      "benchmarks", "examples", "diagrams"]
     for dir_name in required_dirs:
         if Path(dir_name).exists():
             print(f"✅ Directory {dir_name} exists")
@@ -87,6 +95,95 @@ def run_basic_tests():
     
     print("🎉 Basic system tests completed!")
     return True
+
+def _time_op(fn, n=200, warmup=5):
+    """Returns milliseconds/op, averaged over n iterations after warmup."""
+    for _ in range(warmup):
+        fn()
+    t0 = time.perf_counter()
+    for _ in range(n):
+        fn()
+    t1 = time.perf_counter()
+    return (t1 - t0) / n * 1000
+
+def run_benchmarks():
+    """Real timing measurements against the installed liboqs, for
+    ML-KEM-768, ML-DSA-65, and Falcon-512. Skips any algorithm that
+    isn't available in the current liboqs build rather than faking a
+    number for it (see docs/RESEARCH_NOTES.md's algorithm availability
+    audit, which found SLH-DSA-128s disabled in this build)."""
+    from algorithms.kem import MLKEM768, KEMError
+    from algorithms.signature import MLDSA65, Falcon512, SignatureError
+
+    results = {}
+
+    try:
+        kem = MLKEM768()
+        pk, sk = kem.generate_keypair()
+        ciphertext, _ = kem.encapsulate(pk)
+        results["ML-KEM-768"] = {
+            "keypair_ms": round(_time_op(kem.generate_keypair), 4),
+            "encapsulate_ms": round(_time_op(lambda: kem.encapsulate(pk)), 4),
+            "decapsulate_ms": round(_time_op(lambda: kem.decapsulate(sk, ciphertext)), 4),
+        }
+        print(f"⏱️  ML-KEM-768: keypair={results['ML-KEM-768']['keypair_ms']}ms "
+              f"encaps={results['ML-KEM-768']['encapsulate_ms']}ms "
+              f"decaps={results['ML-KEM-768']['decapsulate_ms']}ms")
+    except KEMError as e:
+        print(f"⚠️  ML-KEM-768 unavailable, skipping: {e}")
+
+    message = b"quantum-shield benchmark message" * 8
+    for label, cls in (("ML-DSA-65", MLDSA65), ("Falcon-512", Falcon512)):
+        try:
+            sig = cls()
+            pk, sk = sig.generate_keypair()
+            signature = sig.sign(sk, message)
+            results[label] = {
+                "keypair_ms": round(_time_op(sig.generate_keypair), 4),
+                "sign_ms": round(_time_op(lambda: sig.sign(sk, message)), 4),
+                "verify_ms": round(_time_op(lambda: sig.verify(pk, message, signature)), 4),
+            }
+            print(f"⏱️  {label}: keypair={results[label]['keypair_ms']}ms "
+                  f"sign={results[label]['sign_ms']}ms "
+                  f"verify={results[label]['verify_ms']}ms")
+        except SignatureError as e:
+            print(f"⚠️  {label} unavailable, skipping: {e}")
+
+    return results
+
+def run_server(port):
+    """Real ML-KEM-768 key-exchange demo listener -- NOT a TLS server and
+    not a security protocol (no authentication, no transport encryption,
+    no replay protection). See examples/kem_demo_client.py to test it,
+    and docs/FUTURE_DIRECTIONS.md item 6 for what real PQ-TLS integration
+    still needs beyond this."""
+    from algorithms.kem import MLKEM768
+
+    print(f"🌐 Quantum Shield ML-KEM-768 demo listener starting on port {port}")
+    print("⚠️  Demo only: no authentication, no transport encryption, no replay protection.")
+    print("   Test it with: python3 examples/kem_demo_client.py --port " + str(port))
+    print("\nPress Ctrl+C to stop\n")
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind(("0.0.0.0", port))
+        listener.listen(1)
+        try:
+            while True:
+                conn, addr = listener.accept()
+                with conn:
+                    print(f"🔗 Connection from {addr[0]}:{addr[1]}")
+                    kem = MLKEM768()
+                    pk, sk = kem.generate_keypair()
+                    conn.sendall(struct.pack(">I", len(pk)) + pk)
+                    (ct_len,) = struct.unpack(">I", conn.recv(4))
+                    ciphertext = b""
+                    while len(ciphertext) < ct_len:
+                        ciphertext += conn.recv(ct_len - len(ciphertext))
+                    shared_secret = kem.decapsulate(sk, ciphertext)
+                    print(f"🔑 Derived shared secret: {shared_secret.hex()}")
+        except KeyboardInterrupt:
+            print("\n🛑 Server stopped")
 
 def main():
     """Main entry point"""
@@ -175,28 +272,18 @@ def main():
         
     elif args.command == 'benchmark':
         logger.info("Running benchmarks...")
-        print("🚀 Benchmark mode - testing post-quantum performance")
-        print("⏱️  Simulating ML-KEM key generation...")
-        print("⏱️  Simulating ML-DSA signature operations...")
-        print("⏱️  Simulating TLS handshake performance...")
-        print("✅ Benchmark complete - see benchmarks/ for detailed results")
-        
+        print("🚀 Benchmark mode - real timings against the installed liboqs")
+        results = run_benchmarks()
+        Path("benchmarks/results").mkdir(parents=True, exist_ok=True)
+        out_path = Path("benchmarks/results") / (
+            datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + ".json"
+        )
+        out_path.write_text(json.dumps(results, indent=2))
+        print(f"✅ Benchmark complete - results written to {out_path}")
+
     elif args.command == 'server':
         logger.info(f"Starting server on port {args.port}...")
-        print(f"🌐 Quantum Shield server starting on port {args.port}")
-        print("🛡️  All connections secured with post-quantum cryptography")
-        print("🔒 Supported algorithms:")
-        print("   • ML-KEM-768 (Key Exchange)")
-        print("   • ML-DSA-65 (Digital Signatures)")
-        print("   • SLH-DSA-128s (Long-term Signatures)")
-        print("   • Hybrid Mode: Classical + Post-Quantum")
-        print("\nPress Ctrl+C to stop server")
-        try:
-            import time
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            print("\n🛑 Server stopped")
+        run_server(args.port)
             
     elif args.command == 'status':
         print("🛡️  Quantum Shield Status Report")

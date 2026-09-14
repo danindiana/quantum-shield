@@ -1,0 +1,34 @@
+digraph demoserver {
+  bgcolor="#0b0f14";
+  rankdir=LR;
+  fontname="Helvetica";
+  fontcolor="#c9d1d9";
+  labelloc="t";
+  label="quantum_shield.py server + examples/kem_demo_client.py -- real TCP handshake, verified";
+  fontsize=20;
+  node [style=filled, fillcolor="#161b22", color="#39ffe0", fontcolor="#e6edf3", fontname="Helvetica", penwidth=2, shape=box, margin="0.25,0.15"];
+  edge [color="#8f5cff", fontcolor="#c9d1d9", fontname="Helvetica", penwidth=1.6, fontsize=11];
+
+  server [label="quantum_shield.py server\nrun_server(port)", color="#ffcb47"];
+  s_kem [label="MLKEM768().generate_keypair()"];
+  s_send [label="send length-prefixed\npublic_key over TCP"];
+  s_recv [label="recv length-prefixed\nciphertext over TCP"];
+  s_decap [label="decapsulate(sk, ciphertext)\n-> shared_secret"];
+
+  client [label="examples/kem_demo_client.py", color="#ffcb47"];
+  c_recv [label="recv public_key"];
+  c_encap [label="MLKEM768().encapsulate(pk)\n-> ciphertext, shared_secret"];
+  c_send [label="send ciphertext"];
+
+  verified [label="verified this session:\nboth sides print the\nidentical shared secret", shape=note, color="#39ffe0"];
+  disclaimer [label="NOT a security protocol:\nno auth of server's pubkey,\nno transport encryption,\nno replay protection", shape=note, color="#ff2ec4"];
+
+  server -> s_kem -> s_send;
+  s_send -> c_recv [label="TCP", style=dashed];
+  c_recv -> c_encap -> c_send;
+  c_send -> s_recv [label="TCP", style=dashed];
+  s_recv -> s_decap;
+  s_decap -> verified;
+  c_encap -> verified;
+  verified -> disclaimer [style=dotted];
+}

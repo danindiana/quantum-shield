@@ -16,8 +16,8 @@ def test_python_version():
 def test_project_structure():
     """Verify project directory structure"""
     required_dirs = [
-        "src", "tests", "docs", "scripts", 
-        "configs", "benchmarks", "examples"
+        "src", "tests", "docs", "scripts",
+        "configs", "benchmarks", "examples", "diagrams"
     ]
     
     for dir_name in required_dirs:

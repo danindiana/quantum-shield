@@ -6,6 +6,32 @@ copied from a style guide. Newest first.
 
 ---
 
+### 2026-09-14 — A CLI's status output is a security claim; don't let it drift from the code
+
+**What happened:** `quantum_shield.py server`'s banner claimed
+"SLH-DSA-128s (Long-term Signatures)" and "Hybrid Mode: Classical +
+Post-Quantum" as supported, alongside a "🛡️ All connections secured with
+post-quantum cryptography" line — while the command itself only slept in
+a loop and never opened a socket. Every claim in that banner was false:
+SLH-DSA is disabled in the installed liboqs build (confirmed
+independently in `docs/RESEARCH_NOTES.md`), hybrid mode has no
+implementation anywhere in the codebase, and no connection of any kind
+was ever secured because none was ever accepted.
+
+**Practice:** a CLI's printed status/banner text is read by users as a
+factual claim about what the running code does, not as flavor text or
+aspirational marketing. Every algorithm or feature named in output like
+this should be checked against what the code actually calls, not copied
+from the config file's intentions or a project's roadmap.
+
+**How to apply here:** the rebuilt `server` command's banner names
+exactly what it does (ML-KEM-768 demo listener) and states its
+limitations in the same breath ("no authentication, no transport
+encryption, no replay protection") rather than listing capabilities that
+sound impressive but aren't real.
+
+---
+
 ### 2026-09-14 — Never hardcode a C library's struct sizes; read them at runtime
 
 **What happened:** the original `simple_ssh_keygen.py` hardcoded

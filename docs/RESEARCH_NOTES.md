@@ -6,6 +6,30 @@ background (that's in `NIST_COMPLIANCE.md`).
 
 ---
 
+## 2026-09-14 — First real over-the-wire key exchange
+
+Verified `quantum_shield.py server` and the new
+`examples/kem_demo_client.py` actually perform a working ML-KEM-768
+handshake over a real TCP socket (loopback, port 18443 for the test):
+server generates a keypair and sends the public key; client encapsulates
+against it and sends back the ciphertext; server decapsulates. Both
+processes printed the identical 32-byte shared secret
+(`af62ad66611d234e51fd13ebc827afa75ace7f52fa01e581feac9fb9fe506b6e` in
+this run — the value itself is meaningless, it's freshly random every
+run; what matters is that it matched on both sides).
+
+**Explicitly not claimed:** this is not TLS, has no authentication of the
+server's public key (a machine-in-the-middle could substitute their own
+key and the client would never know), no transport encryption of
+anything after the handshake, and no replay protection. It demonstrates
+the KEM primitive working correctly over a real network boundary, which
+is a meaningfully different (and stronger) claim than "the Python
+function returns the right bytes in-process" — but it is not a security
+protocol. See `docs/FUTURE_DIRECTIONS.md` item 6 for what real PQ-TLS
+integration would still need on top of this.
+
+---
+
 ## 2026-09-14 — First real performance measurement
 
 No file in this repo had ever measured actual algorithm timings before

@@ -24,6 +24,24 @@ individually in this fork in favor of one current summary).
   `algorithms._liboqs.load_liboqs()` loader instead of duplicating the
   path-search logic — the duplication was found while drawing the module
   map (`diagrams/05-repo-module-map.svg`).
+- **`quantum_shield.py benchmark`** now runs real timings against
+  `src/algorithms/kem.py`/`signature.py` and writes them to
+  `benchmarks/results/<timestamp>.json`, instead of printing simulated
+  output. Skips any algorithm unavailable in the current liboqs build
+  (SLH-DSA) rather than faking a number.
+- **`quantum_shield.py server`** is now a real ML-KEM-768 key-exchange
+  demo over an actual TCP socket, testable against the new
+  `examples/kem_demo_client.py` — verified both sides derive the same
+  shared secret. The old version claimed SLH-DSA and "Hybrid Mode"
+  support that didn't exist anywhere in the codebase; the new banner only
+  states what it actually does, and explicitly flags itself as a protocol
+  demo, not a security protocol (no auth, no transport encryption, no
+  replay protection). See `diagrams/09-demo-server-client.svg`.
+- **9th diagram** (`diagrams/09-demo-server-client.svg`) added for the
+  above; `diagrams/08-test-coverage-map.svg` updated to move
+  `benchmark`/`server` from "untested" to "exercised manually."
+- **`run_basic_tests()`'s required-directory list** now matches
+  `tests/test_setup.py`'s (both check `diagrams`, previously only one did).
 
 ## Not yet started
 
@@ -31,7 +49,8 @@ individually in this fork in favor of one current summary).
 - `src/pki/` — certificate authority / trust chain handling. Empty.
 - `src/protocols/tls/` — TLS integration beyond manual `openssl` CLI
   certificate generation (i.e., an actual PQ-TLS server/client, not just
-  cert issuance). Empty.
+  cert issuance, and not the unauthenticated demo in `quantum_shield.py
+  server`).
 - SLH-DSA (hash-based signatures, FIPS 205) — configured as the primary
   `hash_signature` scheme in `configs/quantum_shield_config.yaml`. Checked
   this session: `Signature("SLH-DSA-128s")` raises `SignatureError` —
@@ -39,8 +58,6 @@ individually in this fork in favor of one current summary).
   though `src/algorithms/signature.py`'s `Signature` class is written
   generically enough to support any algorithm liboqs has compiled in.
   Would need a liboqs rebuild with SLH-DSA enabled to use.
-- `quantum_shield.py`'s `benchmark` and `server` CLI subcommands print
-  simulated/placeholder output; they don't call the real library yet.
 
 ## Known limitation carried over from the original project
 

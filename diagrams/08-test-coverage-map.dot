@@ -26,6 +26,8 @@ digraph coverage {
     style=dashed;
     ssh_manual [label="simple_ssh_keygen.py\nend-to-end (both algorithms)"];
     falcon_manual [label="Falcon512 subclass"];
+    benchmark_manual [label="quantum_shield.py benchmark\n-- real numbers written to file"];
+    server_manual [label="quantum_shield.py server +\nkem_demo_client.py -- real TCP\nhandshake, matching secrets"];
   }
 
   subgraph cluster_untested {
@@ -35,6 +37,5 @@ digraph coverage {
     style=dashed;
     tls [label="test_pq_tls.py\n(needs oqs-provider built)"];
     slhdsa [label="SLH-DSA\n(disabled in this liboqs build)"];
-    cli_untested [label="quantum_shield.py\nbenchmark/server commands"];
   }
 }

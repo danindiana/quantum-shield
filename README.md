@@ -12,7 +12,7 @@
   <img alt="FIPS 203" src="https://img.shields.io/badge/FIPS%20203-ML--KEM-39ffe0?style=flat-square&labelColor=0b0f14">
   <img alt="FIPS 204" src="https://img.shields.io/badge/FIPS%20204-ML--DSA-39ffe0?style=flat-square&labelColor=0b0f14">
   <img alt="Tests" src="https://img.shields.io/badge/tests-16%20passing-8f5cff?style=flat-square&labelColor=0b0f14">
-  <img alt="Diagrams" src="https://img.shields.io/badge/diagrams-8-8f5cff?style=flat-square&labelColor=0b0f14">
+  <img alt="Diagrams" src="https://img.shields.io/badge/diagrams-9-8f5cff?style=flat-square&labelColor=0b0f14">
   <img alt="PRs welcome" src="https://img.shields.io/badge/PRs-welcome-39ffe0?style=flat-square&labelColor=0b0f14">
   <a href="https://github.com/danindiana/quantum-shield/commits/master"><img alt="Last commit" src="https://img.shields.io/github/last-commit/danindiana/quantum-shield?style=flat-square&labelColor=0b0f14"></a>
 </p>
@@ -48,6 +48,16 @@ through `openssl` + `oqs-provider`.
   (ML-DSA-65 or Falcon-512) using the library above.
 - **`test_pq_tls.py`** — generates real post-quantum TLS certificates by
   shelling out to `openssl` with the `oqs-provider` module loaded.
+- **`quantum_shield.py benchmark`** — real timings (not simulated) for
+  keypair/encaps/decaps/sign/verify, written to
+  `benchmarks/results/<timestamp>.json`.
+- **`quantum_shield.py server` + `examples/kem_demo_client.py`** — a real
+  ML-KEM-768 key exchange over an actual TCP socket: the server generates
+  a keypair, sends the public key, the client encapsulates and sends back
+  a ciphertext, the server decapsulates — both sides print the identical
+  shared secret. **This is a protocol demo, not a security protocol**: no
+  authentication of the server's public key, no transport encryption, no
+  replay protection. See [diagram 09](diagrams/09-demo-server-client.svg).
 - **16 passing tests** (`tests/test_kem.py`, `tests/test_signature.py`,
   `tests/test_setup.py`) run against the actual installed `liboqs.so` —
   round-trip encapsulate/decapsulate, sign/verify, and negative cases
@@ -138,7 +148,7 @@ directories — architecture laid out, not yet implemented. See
 
 ## Diagrams
 
-8 Graphviz diagrams (dark background / neon palette), source `.dot`
+9 Graphviz diagrams (dark background / neon palette), source `.dot`
 alongside rendered `.svg`/`.png` in [`diagrams/`](diagrams/):
 
 | # | Diagram | What it shows |
@@ -151,6 +161,7 @@ alongside rendered `.svg`/`.png` in [`diagrams/`](diagrams/):
 | 06 | [Roadmap](diagrams/06-roadmap.svg) | Staged next steps, from `FUTURE_DIRECTIONS.md` |
 | 07 | [Trust boundary](diagrams/07-trust-boundary.svg) | What's upstream/vetted vs. this repo's own (not audited) code |
 | 08 | [Test coverage map](diagrams/08-test-coverage-map.svg) | What's covered by pytest vs. exercised manually vs. untested |
+| 09 | [Demo server/client](diagrams/09-demo-server-client.svg) | The real over-the-wire ML-KEM-768 handshake, and its explicit non-goals |
 
 ## Documentation
 
