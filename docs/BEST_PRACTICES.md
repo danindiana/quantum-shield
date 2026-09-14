@@ -6,6 +6,40 @@ copied from a style guide. Newest first.
 
 ---
 
+### 2026-09-14 — A build that "succeeds" can still silently link the wrong dependency
+
+**What happened:** writing CI for building `oqs-provider` against a
+pinned `liboqs`, `cmake -Dliboqs_DIR=$HOME/.local ...` (a `-D` cache
+flag) built with **zero errors or warnings** — but the resulting
+`oqsprovider.so` had silently linked against a *different*,
+pre-existing `liboqs` already on the machine (this session's own dev
+box, which had one from earlier work) instead of the one just built.
+The build log gave no indication anything was wrong; only `ldd`-checking
+the actual `.so`'s dependency, and comparing the SONAME to the one just
+built, revealed it. The fix (found in `oqs-provider`'s own build script,
+not its CMake docs) was that `liboqs_DIR` needs to be an **environment
+variable**, not a CMake cache variable — CMake's `find_package` treats
+those two forms differently for this hint, and silently discards an
+invalid cache-variable hint rather than erroring.
+
+**Practice:** "the build succeeded" and "the build succeeded *against
+the thing I intended*" are different claims. When a build's whole point
+is linking against a specific version of a dependency (exactly the case
+for anything liboqs-version-sensitive here), verify the *actual binary
+artifact* links against what you meant — `ldd`, checking a reported
+version string, or a smoke test that would behave differently across
+versions — not just that the build exited zero. This is a sharper
+version of the "test the exact invocation" lesson two entries below:
+even *running* the command isn't enough if it can silently succeed
+against the wrong target.
+
+**How to apply here:** `.github/workflows/tests.yml`'s oqs-provider
+build step now `ldd`-checks the installed `oqsprovider.so` and fails
+the build if any dependency shows `=> not found` — a minimal check, but
+one that would have caught this exact silent-wrong-link failure mode.
+
+---
+
 ### 2026-09-14 — "It's in the Makefile" isn't evidence it runs; test the exact invocation, not the intent
 
 **What happened:** the `Makefile` had `source venv/bin/activate && ...`

@@ -6,6 +6,48 @@ background (that's in `NIST_COMPLIANCE.md`).
 
 ---
 
+## 2026-09-14 — Setting up CI found a real, silent liboqs/oqs-provider version and linkage trap
+
+Writing `.github/workflows/tests.yml` (build liboqs + oqs-provider from
+pinned tags, run the test suite) surfaced two real problems, both found
+by actually building, not by reading build files:
+
+1. **Version incompatibility.** liboqs `0.16.0` (its newest tag at the
+   time of checking) + oqs-provider `0.11.0` (its newest tag) fails to
+   compile: `OQS_SIG_alg_sphincs_shake_128f_simple` undeclared —
+   oqs-provider 0.11.0 expects an older SPHINCS+ symbol name liboqs
+   0.16.0 removed. Checked oqs-provider's own CI
+   (`.github/workflows/linux.yml`) and found it pins liboqs `0.15.0`,
+   not `0.16.0` — switched to that exact pairing, which builds and
+   passes the full test suite (48/48) cleanly. Two "latest" tags from
+   two related projects are not automatically compatible with each
+   other; the maintaining project's own CI pin is the real source of
+   truth.
+
+2. **Silent wrong-linkage.** Even with the right version pair,
+   `cmake -Dliboqs_DIR=$HOME/.local ...` built oqs-provider with no
+   errors — but the resulting `oqsprovider.so` had linked against a
+   *different* liboqs already present on the test machine (leftover
+   from earlier work this session), not the one just built. Caught only
+   by `ldd`-checking the actual `.so` and comparing its SONAME
+   (`liboqs.so.8`, the old one) against what the fresh build actually
+   produced (`liboqs.so.9`). Root cause: `liboqs_DIR` needs to be set as
+   an **environment variable**, not a `-D` CMake cache flag — confirmed
+   by finding oqs-provider's own `scripts/fullbuild.sh`, which sets it
+   via `export`, and reproducing both the broken (`-D`) and working
+   (`export`) forms side by side. See
+   `docs/BEST_PRACTICES.md`'s new entry on this.
+
+Verified the corrected build three times end-to-end, atomically (single
+shell script, not split across multiple invocations after the first
+attempt's cross-invocation environment confusion added noise) — real
+cert generation via `openssl genpkey`/`req`, `ldd` confirming correct
+linkage, and the full 48-test pytest suite passing against the fresh
+build. Also updated the README's "Building liboqs" section with the
+exact same corrected commands, verified literally copy-paste-runnable.
+
+---
+
 ## 2026-09-14 — The Makefile had been completely non-functional since it was written
 
 Checked something nobody had touched all session: the `Makefile`. Ran

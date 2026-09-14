@@ -1,0 +1,115 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    env:
+      # Pinned to the exact pairing oqs-provider's own CI builds against
+      # (see oqs-provider's .github/workflows/linux.yml) -- discovered
+      # the hard way: liboqs 0.16.0 + oqs-provider 0.11.0 fails to build
+      # at all ("OQS_SIG_alg_sphincs_shake_128f_simple undeclared"), a
+      # real incompatibility caught by actually building this pairing
+      # locally before trusting it here, not by picking two "latest"
+      # tags and assuming they'd work together.
+      LIBOQS_VERSION: "0.15.0"
+      OQS_PROVIDER_VERSION: "0.11.0"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libssl-dev python3-venv
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # liboqs and oqs-provider are deliberately NOT vendored in this repo
+      # (see README "Building liboqs") -- built here from pinned release
+      # tags, cached by that version so unrelated pushes don't rebuild it.
+      - name: Cache liboqs + oqs-provider build
+        id: cache-liboqs
+        uses: actions/cache@v4
+        with:
+          path: ~/.local
+          key: liboqs-${{ env.LIBOQS_VERSION }}-oqsprovider-${{ env.OQS_PROVIDER_VERSION }}-${{ runner.os }}-v2
+
+      - name: Build and install liboqs
+        if: steps.cache-liboqs.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch "${LIBOQS_VERSION}" \
+            https://github.com/open-quantum-safe/liboqs.git /tmp/liboqs
+          cmake -S /tmp/liboqs -B /tmp/liboqs/build -GNinja \
+            -DCMAKE_INSTALL_PREFIX="$HOME/.local" -DBUILD_SHARED_LIBS=ON
+          cmake --build /tmp/liboqs/build
+          cmake --install /tmp/liboqs/build
+
+      - name: Build and install oqs-provider
+        if: steps.cache-liboqs.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch "${OQS_PROVIDER_VERSION}" \
+            https://github.com/open-quantum-safe/oqs-provider.git /tmp/oqs-provider
+          # liboqs_DIR MUST be an environment variable here, not a -D
+          # CMake cache flag. CMake's find_package(liboqs) treats a
+          # cache _DIR variable as the exact directory containing
+          # liboqsConfig.cmake (i.e. lib/cmake/liboqs/, one level deeper
+          # than the install prefix) and silently discards it -- with no
+          # error -- if it's not exactly that; only as an env var does
+          # oqs-provider's CMakeLists treat it as a prefix to search
+          # under. Passing it as -Dliboqs_DIR=<prefix> builds "fine" but
+          # silently falls through to any OTHER liboqs on the system's
+          # default search paths instead -- caught only by ldd-checking
+          # the built oqsprovider.so's actual SONAME dependency and
+          # comparing it to the one just built, not by the build log,
+          # which shows no error either way.
+          export liboqs_DIR="$HOME/.local"
+          # OPENSSL_MODULES_PATH must also be set explicitly -- without
+          # it, oqs-provider's own CMakeLists installs oqsprovider.so
+          # into the *system* OpenSSL modules directory regardless of
+          # CMAKE_INSTALL_PREFIX, which fails with a permission error
+          # for a non-root install. Found by actually running the
+          # install step, not by reading the CMakeLists and assuming
+          # CMAKE_INSTALL_PREFIX covered every installed file.
+          cmake -S /tmp/oqs-provider -B /tmp/oqs-provider/build -GNinja \
+            -DCMAKE_INSTALL_PREFIX="$HOME/.local" -DOPENSSL_ROOT_DIR=/usr \
+            -DOPENSSL_MODULES_PATH="$HOME/.local/lib/ossl-modules"
+          cmake --build /tmp/oqs-provider/build
+          cmake --install /tmp/oqs-provider/build
+          # Verify it actually resolves against the liboqs just built --
+          # fail loudly here rather than leaving a working-looking build
+          # that silently links against a different liboqs. Needs
+          # LD_LIBRARY_PATH set for ldd to resolve it at all (without it,
+          # ldd reports "not found" even for a correctly-built library,
+          # a false positive caught by testing this exact check locally
+          # before trusting it here).
+          export LD_LIBRARY_PATH="$HOME/.local/lib"
+          ldd "$HOME/.local/lib/ossl-modules/oqsprovider.so"
+          if ldd "$HOME/.local/lib/ossl-modules/oqsprovider.so" | grep -q "not found"; then
+            echo "oqsprovider.so has an unresolved shared library dependency" >&2
+            exit 1
+          fi
+
+      - name: Create venv and install Python dependencies
+        run: |
+          python3 -m venv venv
+          venv/bin/python3 -m pip install --upgrade pip
+          venv/bin/python3 -m pip install -r requirements.txt
+
+      - name: Run the test suite
+        run: |
+          export LD_LIBRARY_PATH="$HOME/.local/lib"
+          export OPENSSL_MODULES="$HOME/.local/lib/ossl-modules"
+          make test
+
+      - name: Run the CLI self-check
+        run: |
+          export LD_LIBRARY_PATH="$HOME/.local/lib"
+          make test-cli

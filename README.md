@@ -134,8 +134,8 @@ export LD_LIBRARY_PATH="$HOME/.local/lib:$LD_LIBRARY_PATH"
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
-# Run the test suite against your liboqs build
-python3 -m pytest tests/test_kem.py tests/test_signature.py -v
+# Run the full test suite against your liboqs build (or: make test)
+python3 -m pytest tests/ -v
 
 # Generate post-quantum SSH keys
 python3 simple_ssh_keygen.py
@@ -148,19 +148,60 @@ python3 test_pq_tls.py
 ### Building liboqs
 
 This repo intentionally does not vendor liboqs's ~400MB source tree —
-clone and build it yourself:
+clone and build it yourself. Pin a release tag rather than `main`/HEAD —
+`.github/workflows/tests.yml` pins `0.15.0`, matching the exact version
+oqs-provider's own CI builds against (its `main` branch had already
+drifted incompatible with a newer liboqs release when this was checked):
 
 ```bash
-git clone --depth 1 https://github.com/open-quantum-safe/liboqs.git
-cmake -S liboqs -B liboqs/build -DCMAKE_INSTALL_PREFIX=$HOME/.local
+git clone --depth 1 --branch 0.15.0 https://github.com/open-quantum-safe/liboqs.git
+cmake -S liboqs -B liboqs/build -DCMAKE_INSTALL_PREFIX=$HOME/.local -DBUILD_SHARED_LIBS=ON
 cmake --build liboqs/build --parallel
 cmake --install liboqs/build
 ```
 
 For PQ TLS certificates, also build
 [`oqs-provider`](https://github.com/open-quantum-safe/oqs-provider)
-against the same liboqs install and set `OPENSSL_MODULES` to wherever it
-installs `oqsprovider.so`.
+(pin `0.11.0` — the version actually verified against liboqs `0.15.0`
+this session) against the same liboqs install. Two flags matter here,
+both found by actually running the build and install, not by reading
+the build files and assuming they'd work:
+
+- **`liboqs_DIR` must be an environment variable (`export`), not a
+  `-D` CMake flag.** CMake's `find_package(liboqs)` treats a `-D`-set
+  cache variable as the *exact* directory containing
+  `liboqsConfig.cmake` (one level deeper than the install prefix) and
+  silently discards it if it's not exactly that — with no error —
+  falling back to any *other* liboqs already on the system's default
+  search paths instead. Only as an environment variable does
+  oqs-provider's CMakeLists treat it as a prefix to search under. A
+  build with the wrong one produces no error and no warning; the only
+  way to catch it is `ldd`-checking the built `oqsprovider.so` against
+  the liboqs you actually meant to use.
+- **`OPENSSL_MODULES_PATH` must be passed explicitly** — without it,
+  oqs-provider's `CMakeLists.txt` installs `oqsprovider.so` into the
+  *system* OpenSSL modules directory regardless of
+  `CMAKE_INSTALL_PREFIX`, which fails with a permission error unless you
+  run the install step as root.
+
+```bash
+git clone --depth 1 --branch 0.11.0 https://github.com/open-quantum-safe/oqs-provider.git
+export liboqs_DIR=$HOME/.local
+cmake -S oqs-provider -B oqs-provider/build \
+    -DOPENSSL_ROOT_DIR=/usr \
+    -DCMAKE_INSTALL_PREFIX=$HOME/.local \
+    -DOPENSSL_MODULES_PATH=$HOME/.local/lib/ossl-modules
+cmake --build oqs-provider/build --parallel
+cmake --install oqs-provider/build
+
+# Confirm it actually linked against the liboqs you just built --
+# should show liboqs.so.N resolving under $HOME/.local/lib, not
+# /usr/lib or any other path:
+LD_LIBRARY_PATH=$HOME/.local/lib ldd $HOME/.local/lib/ossl-modules/oqsprovider.so | grep liboqs
+```
+
+Then set `OPENSSL_MODULES=$HOME/.local/lib/ossl-modules` (as in the
+Quick Start above) so `openssl` can find it.
 
 ## Using the library directly
 
