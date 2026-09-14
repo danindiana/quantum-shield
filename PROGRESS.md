@@ -5,6 +5,15 @@ individually in this fork in favor of one current summary).
 
 ## Working today
 
+- **Statistical benchmarks (2026-09-14)**: `_time_op()` in
+  `quantum_shield.py` now times every individual call (not one
+  wall-clock span / n) and reports mean/stddev/min/max/p95 per
+  operation. Doing this surfaced a real finding: ML-DSA-65 sign
+  (stddev 65% of its own mean) and Falcon-512 keypair (max 2.4x its
+  min) both show high variance, consistent with their known
+  rejection-sampling internals — not something the earlier single-
+  average number could have shown. Closes the caveat the first
+  benchmark entry in `docs/RESEARCH_NOTES.md` explicitly logged.
 - **CI (2026-09-14)**: `.github/workflows/tests.yml` builds liboqs
   `0.15.0` + oqs-provider `0.11.0` from pinned tags (verified compatible
   pairing — a newer "latest" pairing of both actually fails to compile)

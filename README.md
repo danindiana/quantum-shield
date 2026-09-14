@@ -52,8 +52,12 @@ through `openssl` + `oqs-provider`.
 - **`test_pq_tls.py`** — generates real post-quantum TLS certificates by
   shelling out to `openssl` with the `oqs-provider` module loaded.
 - **`quantum_shield.py benchmark`** — real timings (not simulated) for
-  keypair/encaps/decaps/sign/verify, written to
-  `benchmarks/results/<timestamp>.json`.
+  keypair/encaps/decaps/sign/verify, reported as mean/stddev/min/max/p95
+  per operation (not a single aggregate average), written to
+  `benchmarks/results/<timestamp>.json`. Surfaced a real signal doing
+  this: ML-DSA-65 sign and Falcon-512 keypair both show high variance,
+  consistent with their rejection-sampling internals — see
+  `docs/RESEARCH_NOTES.md`.
 - **`quantum_shield.py server` + `examples/kem_demo_client.py`** — a real
   ML-KEM-768 key exchange over an actual TCP socket: the server generates
   a keypair, sends the public key, the client encapsulates and sends back

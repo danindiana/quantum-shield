@@ -263,6 +263,38 @@ process, no concurrent load control.
 
 ---
 
+## 2026-09-14 — Closed the "no statistical variance" caveat above, and found a real signal in doing it
+
+`_time_op()` in `quantum_shield.py` now times each of the 200 iterations
+individually (instead of one wall-clock span divided by 200) and reports
+mean/stddev/min/max/p95 per operation, addressing the caveat two entries
+up directly. Re-running surfaced something a single average had hidden:
+
+| Operation | mean (ms) | stddev (ms) | min | max | p95 |
+|---|---|---|---|---|---|
+| ML-DSA-65 sign | 0.0518 | **0.0335** | 0.0228 | 0.265 | 0.1034 |
+| Falcon-512 keypair | 4.3149 | **1.3361** | 3.1272 | 10.4866 | 7.3442 |
+
+Every other operation measured (KEM keypair/encaps/decaps, both
+algorithms' verify, ML-DSA-65 keypair) has a stddev under ~3% of its
+mean — tight and boring, as expected for constant-time-ish operations.
+These two stand out: ML-DSA-65's sign stddev is **65% of its own mean**,
+and Falcon-512's keypair max (10.49ms) is **2.4x** its min (3.13ms).
+
+This is consistent with both algorithms' known internals rather than a
+binding artifact: ML-DSA (Dilithium) signing and Falcon's NTRU trapdoor
+key generation both use **rejection sampling** — an internal retry loop
+that runs a variable number of times per call depending on random
+sampling outcomes, by design (not a bug, and not something
+`src/algorithms/` controls or could "fix" — it's inherent to how these
+specific lattice constructions achieve their security proofs). Stated as
+a hypothesis consistent with the data, not independently confirmed
+against liboqs's own internals this session — the honest caveat now is
+"this pattern matches the known algorithm design," not "no variance data
+exists at all."
+
+---
+
 ## 2026-09-14 — Algorithm availability audit
 
 Checked which algorithms are actually enabled in the currently installed

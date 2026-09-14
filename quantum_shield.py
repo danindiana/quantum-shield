@@ -6,6 +6,7 @@ Entry point for the quantum shield system
 
 import json
 import socket
+import statistics
 import struct
 import sys
 import time
@@ -97,21 +98,49 @@ def run_basic_tests():
     return True
 
 def _time_op(fn, n=200, warmup=5):
-    """Returns milliseconds/op, averaged over n iterations after warmup."""
+    """Times n individual calls to fn() (after warmup) and returns
+    per-call statistics in milliseconds: mean, stddev, min, max, and
+    p95. Times each call separately rather than one wall-clock span
+    divided by n -- a single aggregate average can hide a long tail
+    (e.g. GC pauses, one slow call) that a real caller deciding whether
+    this is "fast enough" would want to see. Addresses the caveat
+    logged in docs/RESEARCH_NOTES.md's first benchmark entry: "single
+    run, no statistical variance reported... re-run before trusting.\""""
     for _ in range(warmup):
         fn()
-    t0 = time.perf_counter()
+    samples_ms = []
     for _ in range(n):
+        t0 = time.perf_counter()
         fn()
-    t1 = time.perf_counter()
-    return (t1 - t0) / n * 1000
+        t1 = time.perf_counter()
+        samples_ms.append((t1 - t0) * 1000)
+
+    samples_ms.sort()
+    mean = statistics.mean(samples_ms)
+    stddev = statistics.stdev(samples_ms) if len(samples_ms) > 1 else 0.0
+    p95_index = min(int(len(samples_ms) * 0.95), len(samples_ms) - 1)
+    return {
+        "mean_ms": round(mean, 4),
+        "stddev_ms": round(stddev, 4),
+        "min_ms": round(samples_ms[0], 4),
+        "max_ms": round(samples_ms[-1], 4),
+        "p95_ms": round(samples_ms[p95_index], 4),
+        "n": n,
+    }
+
+def _print_stat_line(label, op, stat):
+    print(f"⏱️  {label} {op}: mean={stat['mean_ms']}ms stddev={stat['stddev_ms']}ms "
+          f"min={stat['min_ms']}ms max={stat['max_ms']}ms p95={stat['p95_ms']}ms "
+          f"(n={stat['n']})")
 
 def run_benchmarks():
     """Real timing measurements against the installed liboqs, for
     ML-KEM-768, ML-DSA-65, and Falcon-512. Skips any algorithm that
     isn't available in the current liboqs build rather than faking a
     number for it (see docs/RESEARCH_NOTES.md's algorithm availability
-    audit, which found SLH-DSA-128s disabled in this build)."""
+    audit, which found SLH-DSA-128s disabled in this build). Each
+    operation reports full statistics (mean/stddev/min/max/p95) from
+    _time_op(), not a single aggregate average -- see its docstring."""
     from algorithms.kem import MLKEM768, KEMError
     from algorithms.signature import MLDSA65, Falcon512, SignatureError
 
@@ -122,13 +151,12 @@ def run_benchmarks():
         pk, sk = kem.generate_keypair()
         ciphertext, _ = kem.encapsulate(pk)
         results["ML-KEM-768"] = {
-            "keypair_ms": round(_time_op(kem.generate_keypair), 4),
-            "encapsulate_ms": round(_time_op(lambda: kem.encapsulate(pk)), 4),
-            "decapsulate_ms": round(_time_op(lambda: kem.decapsulate(sk, ciphertext)), 4),
+            "keypair": _time_op(kem.generate_keypair),
+            "encapsulate": _time_op(lambda: kem.encapsulate(pk)),
+            "decapsulate": _time_op(lambda: kem.decapsulate(sk, ciphertext)),
         }
-        print(f"⏱️  ML-KEM-768: keypair={results['ML-KEM-768']['keypair_ms']}ms "
-              f"encaps={results['ML-KEM-768']['encapsulate_ms']}ms "
-              f"decaps={results['ML-KEM-768']['decapsulate_ms']}ms")
+        for op, stat in results["ML-KEM-768"].items():
+            _print_stat_line("ML-KEM-768", op, stat)
     except KEMError as e:
         print(f"⚠️  ML-KEM-768 unavailable, skipping: {e}")
 
@@ -139,13 +167,12 @@ def run_benchmarks():
             pk, sk = sig.generate_keypair()
             signature = sig.sign(sk, message)
             results[label] = {
-                "keypair_ms": round(_time_op(sig.generate_keypair), 4),
-                "sign_ms": round(_time_op(lambda: sig.sign(sk, message)), 4),
-                "verify_ms": round(_time_op(lambda: sig.verify(pk, message, signature)), 4),
+                "keypair": _time_op(sig.generate_keypair),
+                "sign": _time_op(lambda: sig.sign(sk, message)),
+                "verify": _time_op(lambda: sig.verify(pk, message, signature)),
             }
-            print(f"⏱️  {label}: keypair={results[label]['keypair_ms']}ms "
-                  f"sign={results[label]['sign_ms']}ms "
-                  f"verify={results[label]['verify_ms']}ms")
+            for op, stat in results[label].items():
+                _print_stat_line(label, op, stat)
         except SignatureError as e:
             print(f"⚠️  {label} unavailable, skipping: {e}")
 

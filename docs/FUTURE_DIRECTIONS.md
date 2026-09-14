@@ -23,8 +23,12 @@ guess about what would be nice to have. See
    secret, verified this session. The old `server` output also claimed
    SLH-DSA-128s and "Hybrid Mode" support that don't exist anywhere in
    this codebase; the new version only advertises what it actually does.
-3. ~~**Actual benchmark numbers.**~~ **Done**, see item 2 above and
-   `docs/RESEARCH_NOTES.md`.
+3. ~~**Actual benchmark numbers.**~~ **Done**, see item 2 above.
+   ~~**Statistical variance in the benchmark.**~~ **Also done** —
+   `_time_op()` now reports mean/stddev/min/max/p95 per-call, not one
+   aggregate average; doing so surfaced a real signal (ML-DSA-65 sign
+   and Falcon-512 keypair both show high variance, consistent with
+   their rejection-sampling internals) — see `docs/RESEARCH_NOTES.md`.
 4. **The demo listener handles one connection at a time and blocks on
    `accept()`.** Fine for a demo, but worth a note: it doesn't fork or
    thread, so a second `kem_demo_client.py` run while one is already
