@@ -78,9 +78,34 @@ guess about what would be nice to have. See
    - **No automatic/scheduled rotation** — `rotate_key()` is a manual
      operation a caller invokes; nothing tracks key age or expiry to
      prompt it.
-5. **`src/pki/`** — certificate authority / trust chain handling beyond
-   the single self-signed cert `test_pq_tls.py` generates via the
-   `openssl` CLI.
+5. ~~**`src/pki/`** — was completely empty.~~ **Started.**
+   `src/pki/certs.py` verifies a PQ-signed X.509 certificate's signature:
+   parses structure via the `cryptography` library's X.509 parser (which
+   handles algorithms it can't itself verify), extracts the raw public
+   key from `SubjectPublicKeyInfo` via a small generic DER TLV walker
+   (not a certificate parser or encoder), and checks the signature via
+   `src/algorithms/signature.py`. Building/signing a cert stays entirely
+   delegated to `openssl`+`oqs-provider` (`test_pq_tls.py`) — this module
+   never encodes DER, only reads it. Verified against two real certs
+   generated fresh each test run (ML-DSA-65, Falcon-512), 13 tests in
+   `tests/test_pki_certs.py` (48 total now). Demoed in
+   `examples/pki_verify_demo.py`. See
+   [diagram 12](../diagrams/12-pki-cert-verify.svg).
+
+   **Not done yet, and this remains real scope:**
+   - **No chain verification** — this checks one certificate's signature
+     against a given (or self-signed) public key, not a trust chain up
+     to a root CA.
+   - **No key usage / extension checks, no name-constraint checking, no
+     revocation (CRL/OCSP)** — none of the things a real TLS certificate
+     validator needs beyond "is this signature valid."
+   - **`KNOWN_SIGNATURE_OIDS` covers exactly the two algorithms verified
+     this session** (ML-DSA-65, Falcon-512) against this host's specific
+     `oqs-provider` build. Falcon's OID (`1.3.9999.*`) is an
+     OQS-private experimental arc, not a stable standard — it may differ
+     on other `oqs-provider` versions. Adding more algorithms means
+     verifying their OID against a real build first, the same way these
+     two were, not guessing from a spec.
 6. **`src/protocols/tls/`** — an actual PQ-TLS server/client using the
    library, not just manual certificate issuance via shell-out to
    `openssl`.

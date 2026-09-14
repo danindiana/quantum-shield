@@ -61,10 +61,25 @@ individually in this fork in favor of one current summary).
   `tests/test_kms.py`, 35 total). Demoed in
   `examples/kms_rotation_demo.py`. 11th diagram
   (`diagrams/11-kms-rotation-revocation.svg`).
+- **`src/pki/certs.py`** — verifies a PQ-signed X.509 certificate's
+  signature without ever building or encoding one: structure parsing via
+  `cryptography`'s X.509 parser, raw public key extraction via a small
+  generic DER TLV walker, signature check via
+  `src/algorithms/signature.py`. Verified against real ML-DSA-65 and
+  Falcon-512 certs generated fresh in the test run (not fixtures). 13
+  tests in `tests/test_pki_certs.py` (48 total). Demoed in
+  `examples/pki_verify_demo.py`. 12th diagram
+  (`diagrams/12-pki-cert-verify.svg`). While updating diagrams 01, 06,
+  07, and 08 for this, found all four had `src/pki/` or test-count
+  references stale from prior commits — fixed all four (see
+  `docs/BEST_PRACTICES.md`'s "diagrams rot" entry, which is now doing
+  double duty).
 
 ## Not yet started
 
-- `src/pki/` — certificate authority / trust chain handling. Empty.
+- `src/pki/` **chain verification, key usage/extensions, revocation
+  (CRL/OCSP)** — current code verifies one certificate's signature, not
+  a trust chain or anything else a real validator needs.
 - `src/protocols/tls/` — TLS integration beyond manual `openssl` CLI
   certificate generation (i.e., an actual PQ-TLS server/client, not just
   cert issuance, and not the unauthenticated demo in `quantum_shield.py

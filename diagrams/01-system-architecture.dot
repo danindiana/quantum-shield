@@ -19,8 +19,10 @@ digraph architecture {
   liboqs_helper [label="src/algorithms/_liboqs.py\nshared loader"];
   liboqs [label="liboqs.so (external)\nOpen Quantum Safe C library", color="#ff2ec4", shape=box3d];
   openssl [label="openssl + oqs-provider\n(external, CLI-driven)", color="#ff2ec4", shape=box3d];
-  crypto [label="cryptography library\n(AESGCM, Scrypt)", color="#ff2ec4", shape=box3d];
-  future [label="src/pki/, src/protocols/tls/\n(planned, empty today)", color="#8a99a8", style=dashed];
+  crypto [label="cryptography library\n(AESGCM, Scrypt, X.509 parser)", color="#ff2ec4", shape=box3d];
+  pki [label="src/pki/certs.py\ncert signature verification", color="#39ffe0"];
+  pkidemo [label="examples/pki_verify_demo.py"];
+  future [label="src/protocols/tls/\n(planned, empty today)", color="#8a99a8", style=dashed];
 
   cli -> kem [label="benchmark, server"];
   cli -> sig [label="benchmark"];
@@ -29,6 +31,10 @@ digraph architecture {
   sshkeygen -> kms [label="--encrypt"];
   kms -> crypto;
   tlstest -> openssl;
+  pkidemo -> openssl [label="generates a\ncert (only)"];
+  pkidemo -> pki;
+  pki -> crypto [label="X.509 structure\nparsing only"];
+  pki -> sig [label="actual signature\nverification"];
   kem -> liboqs_helper;
   sig -> liboqs_helper;
   liboqs_helper -> liboqs [label="ctypes.CDLL"];

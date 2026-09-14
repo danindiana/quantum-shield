@@ -6,6 +6,37 @@ copied from a style guide. Newest first.
 
 ---
 
+### 2026-09-14 — Separate "parse structure" from "verify content" when deciding what's safe to build yourself
+
+**What happened:** `src/pki/certs.py` needed to work with X.509
+certificates signed by an algorithm (`ML-DSA`, `Falcon`) that
+`cryptography`'s own `cert.public_key()`/verification methods don't
+support. The tempting shortcut would have been to write a from-scratch
+certificate parser (or worse, encoder) to work around that gap.
+
+**Practice:** a binary format's *structure* (how many bytes a field is,
+where the next field starts) and its *semantic content* (what a specific
+algorithm's key or signature bytes mean, whether a signature is
+cryptographically valid) are different problems with different risk
+profiles. A generic, algorithm-agnostic structural parser is safe to
+write yourself if the format's structure is simple and well-specified
+(DER's tag-length-value framing is exactly this). Verifying content is
+where a project's own already-tested crypto code should do the work.
+Never reach for "write a full encoder/parser for a format we don't fully
+need" when "walk the structure generically, delegate the semantics" is
+available.
+
+**How to apply here:** `extract_raw_public_key()` only walks DER TLV
+framing and RFC 5280's fixed field *order* — it never interprets what's
+inside `issuer`/`validity`/`subject`, because it doesn't need to.
+`verify_certificate_signature()` does 100% of the actual cryptographic
+work through `src/algorithms/signature.py`, never re-implementing a
+signature check. Building or signing a certificate stays entirely out of
+scope, delegated to `openssl`+`oqs-provider` — that's the side of this
+boundary this project has no business doing itself.
+
+---
+
 ### 2026-09-14 — Revocation and deletion are different operations; don't conflate them
 
 **What happened:** designing `revoke_key()` for `src/kms/store.py`, the

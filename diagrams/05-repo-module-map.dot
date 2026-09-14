@@ -13,10 +13,12 @@ digraph modulemap {
   tests_sig [label="tests/test_signature.py"];
   tests_setup [label="tests/test_setup.py"];
   tests_kms [label="tests/test_kms.py"];
+  tests_pki [label="tests/test_pki_certs.py"];
 
   kem [label="src/algorithms/kem.py", color="#39ffe0"];
   sig [label="src/algorithms/signature.py", color="#39ffe0"];
   kms [label="src/kms/store.py", color="#39ffe0"];
+  pki [label="src/pki/certs.py", color="#39ffe0"];
   liboqs_mod [label="src/algorithms/_liboqs.py"];
 
   sshkeygen [label="simple_ssh_keygen.py"];
@@ -28,6 +30,8 @@ digraph modulemap {
   tests_setup -> config;
   tests_kms -> kms;
   tests_kms -> kem [label="uses real\nkeypairs, not\nfabricated bytes"];
+  tests_pki -> pki;
+  pki -> sig [label="signature\nverification"];
   kem -> liboqs_mod;
   sig -> liboqs_mod;
   kms -> sig [style=invis];

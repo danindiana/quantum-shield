@@ -39,16 +39,19 @@ module dependency graph.
   SSH keypairs, base64-encodes them into (a simplified) OpenSSH key
   format. With `--encrypt`, stores the private key via `src/kms/store.py`
   instead of writing a plaintext file (see below).
-- `tests/test_kem.py`, `tests/test_signature.py`, `tests/test_kms.py` —
-  integration tests against the real installed `liboqs.so` and real
-  `cryptography` primitives.
+- `src/pki/certs.py` — uses `Signature(algorithm)` to verify a parsed
+  certificate's signature (see below).
+- `tests/test_kem.py`, `tests/test_signature.py`, `tests/test_kms.py`,
+  `tests/test_pki_certs.py` — integration tests against the real
+  installed `liboqs.so` and real `cryptography` primitives.
 - `quantum_shield.py` — `verify_liboqs()` uses `algorithms._liboqs`
   directly; `benchmark` and `server` use `algorithms.kem`/`signature` for
   real timings and a real TCP key-exchange demo respectively (both were
   simulated/fake before — see `FUTURE_DIRECTIONS.md`'s struck-through
   items 2-3 for that history).
-- `examples/kem_demo_client.py`, `examples/kms_demo.py` — standalone
-  usage demonstrations, not part of the CLI.
+- `examples/kem_demo_client.py`, `examples/kms_demo.py`,
+  `examples/kms_rotation_demo.py`, `examples/pki_verify_demo.py` —
+  standalone usage demonstrations, not part of the CLI.
 
 **`src/kms/`** — key storage, including rotation and revocation:
 - `store.py` — `KeyStore`. Takes any `(public_key, secret_key)` pair
@@ -68,9 +71,27 @@ module dependency graph.
     automatic/scheduled rotation** — all still real gaps, see
     `FUTURE_DIRECTIONS.md`.
 
+**`src/pki/`** — certificate signature verification, not issuance:
+- `certs.py`. Certificate *building/signing* stays entirely delegated to
+  `openssl` + `oqs-provider` (`test_pq_tls.py`) — this module never
+  encodes DER, only reads it. `load_certificate()` and structural field
+  access (`tbs_certificate_bytes`, `signature`, `signature_algorithm_oid`)
+  go through `cryptography`'s X.509 parser, which correctly parses a
+  certificate's structure even for a signature algorithm it can't verify
+  itself. `extract_raw_public_key()` is a small generic DER TLV walker
+  (not a certificate parser) that knows only the fixed RFC 5280 field
+  order well enough to reach `SubjectPublicKeyInfo`'s `BIT STRING`
+  payload. `verify_certificate_signature()` then checks the actual
+  signature via `src/algorithms/signature.py` — the same tested liboqs
+  binding as everywhere else. See
+  [diagram 12](../diagrams/12-pki-cert-verify.svg).
+  - **No chain verification, key usage, extensions, or revocation
+    checking** — verifies one certificate's signature, not a trust
+    chain. See `FUTURE_DIRECTIONS.md`.
+
 **Not yet connected to anything:**
-- `src/pki/`, `src/protocols/tls/` — directory skeleton only, no files.
-  See `FUTURE_DIRECTIONS.md` for what each is meant to hold.
+- `src/protocols/tls/` — directory skeleton only, no files. See
+  `FUTURE_DIRECTIONS.md` for what it's meant to hold.
 
 ## Why the struct-mirroring approach, specifically
 

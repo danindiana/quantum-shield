@@ -6,6 +6,51 @@ background (that's in `NIST_COMPLIANCE.md`).
 
 ---
 
+## 2026-09-14 — Verified a real PQ X.509 certificate end-to-end, without reimplementing DER
+
+Investigated whether `src/pki/` could offer more than documentation
+before building anything: checked whether `cryptography` (already a
+dependency) natively supports ML-DSA for X.509 -- it doesn't
+(`cryptography.hazmat.primitives.asymmetric.ml_dsa` doesn't exist in
+46.0.2). Rolling a full X.509 *encoder* with correct ASN.1 DER for a PQ
+signature algorithm was ruled out as too large and too risky for this
+pass -- getting DER encoding subtly wrong is a real, easy-to-hit failure
+mode, and `openssl`+`oqs-provider` already does it correctly.
+
+What turned out to be both safe and genuinely useful: `cryptography`'s
+X.509 *parser* handles a certificate's structure correctly even for a
+signature algorithm it can't verify (`cert.public_key()` raises "Unknown
+key type," but `cert.tbs_certificate_bytes`, `cert.signature`, and
+`cert.signature_algorithm_oid` all work). Confirmed this directly against
+a real ML-DSA-65 cert generated on this host via `openssl genpkey
+-algorithm mldsa65` + `openssl req -x509` (with `oqs-provider`, already
+built here) — parsing succeeded, `cert.signature_algorithm_oid` returned
+`2.16.840.1.101.3.4.3.18`.
+
+The remaining piece — getting the raw public key bytes out of
+`SubjectPublicKeyInfo` — needed some DER parsing, but only a *generic*
+TLV walker (tag/length/content), not certificate-specific encoding logic.
+Prototyped it interactively against the real cert before writing the
+module: walked `tbs_certificate_bytes`'s fixed RFC 5280 field order to
+reach the `SubjectPublicKeyInfo` SEQUENCE, then its `BIT STRING`, and
+confirmed the content (minus the leading "unused bits" byte) is exactly
+the raw ML-DSA-65 public key — verified by feeding it into
+`Signature("ML-DSA-65").verify(raw_pk, cert.tbs_certificate_bytes,
+cert.signature)`, which returned `True` against a real, honestly-generated
+certificate. Repeated the same check for a real Falcon-512 cert
+(different OID: `1.3.9999.3.11`, an OQS-private experimental arc, not a
+NIST-assigned one).
+
+Also found and fixed a portability gap while writing this: the code
+initially used `cert.not_valid_before_utc` (added in `cryptography`
+42.0), which doesn't exist on the system's much older `cryptography`
+3.4.8 (distinct from this project's own venv) — a real version mismatch
+that would only have shown up when someone ran a script outside the
+venv. Fixed to prefer the newer accessor when present, fall back to the
+older naive one otherwise.
+
+---
+
 ## 2026-09-14 — Added key rotation and revocation to KeyStore
 
 Extended `src/kms/store.py` with `rotate_key()`, `revoke_key()`, and

@@ -17,14 +17,17 @@ digraph trust {
     nist [label="NIST FIPS 203/204\nstandardized algorithms", color="#ffcb47"];
     liboqs [label="liboqs (Open Quantum Safe)\nreference C implementation", color="#ffcb47"];
     openssl [label="OpenSSL + oqs-provider", color="#ffcb47"];
+    cryptolib [label="cryptography library\n(AEAD/KDF primitives,\nX.509 DER parser)", color="#ffcb47"];
   }
 
   subgraph cluster_thisrepo {
-    label="this repo — bindings and glue, NOT crypto primitives";
+    label="this repo — bindings and glue, NOT crypto primitives, NOT a DER encoder";
     fontcolor="#39ffe0";
     color="#39ffe0";
     style=dashed;
     binding [label="src/algorithms/\nctypes bindings", color="#39ffe0"];
+    kms [label="src/kms/store.py\nencrypt-at-rest, using\ncryptography's primitives", color="#39ffe0"];
+    pki [label="src/pki/certs.py\ncert verification --\nnever builds/encodes a cert", color="#39ffe0"];
     cli [label="quantum_shield.py,\nsimple_ssh_keygen.py"];
   }
 
@@ -32,7 +35,13 @@ digraph trust {
 
   nist -> liboqs -> binding;
   openssl -> cli;
+  openssl -> pki [label="builds/signs certs\n(this repo only verifies)"];
+  cryptolib -> kms;
+  cryptolib -> pki [label="structure parsing\nonly"];
   binding -> cli;
+  binding -> pki [label="actual signature\nverification"];
   cli -> notaudited;
   binding -> notaudited;
+  kms -> notaudited;
+  pki -> notaudited;
 }

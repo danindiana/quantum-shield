@@ -9,18 +9,19 @@ digraph roadmap {
   node [style=filled, fillcolor="#161b22", color="#39ffe0", fontcolor="#e6edf3", fontname="Helvetica", penwidth=2, shape=box, margin="0.25,0.15"];
   edge [color="#8f5cff", fontcolor="#c9d1d9", fontname="Helvetica", penwidth=1.6, fontsize=11];
 
-  done [label="done\nkem.py + signature.py,\nstruct-based sizing,\n16 passing tests", color="#39ffe0"];
-  next1 [label="next: wire CLI\nquantum_shield.py benchmark/\nserver commands call the\nreal library instead of\nprinting simulated output", color="#ffcb47"];
-  next2 [label="next: SLH-DSA support\nneeds a liboqs rebuild with\nit compiled in (checked:\ncurrently disabled)", color="#ffcb47"];
-  next3 [label="next: src/kms/\nkey storage, rotation,\nrevocation -- currently empty"];
-  next4 [label="next: src/pki/\ncertificate authority /\ntrust chain -- currently empty"];
-  next5 [label="next: src/protocols/tls/\nactual PQ-TLS server/client,\nnot just openssl CLI certs"];
+  done1 [label="done: kem.py + signature.py,\nstruct-based sizing,\n27 tests at the time", color="#39ffe0"];
+  done2 [label="done: quantum_shield.py\nbenchmark/server call the\nreal library, real TCP demo", color="#39ffe0"];
+  done3 [label="done: src/kms/store.py --\nsave/load/list/delete/\nrotate/revoke/history", color="#39ffe0"];
+  done4 [label="done: src/pki/certs.py --\nverifies real PQ X.509 certs\n(structure via cryptography,\nsignature via our own binding)", color="#39ffe0"];
+
+  next1 [label="next: SLH-DSA support\nneeds a liboqs rebuild with\nit compiled in (checked:\ncurrently disabled)", color="#ffcb47"];
+  next2 [label="next: src/pki/ chain verification\n-- current code verifies ONE\ncert's signature, not a chain,\nkey usage, or revocation"];
+  next3 [label="next: src/protocols/tls/\nactual PQ-TLS server/client,\nnot just openssl CLI certs"];
   hybrid [label="later: hybrid mode\n(classical + PQ) wiring --\nconfigured but unimplemented\nin configs/quantum_shield_config.yaml", color="#8a99a8"];
 
-  done -> next1;
-  done -> next2;
-  done -> next3;
-  next3 -> next4;
-  next4 -> next5;
-  next5 -> hybrid;
+  done1 -> done2 -> done3 -> done4;
+  done4 -> next1;
+  done4 -> next2;
+  next2 -> next3;
+  next3 -> hybrid;
 }
