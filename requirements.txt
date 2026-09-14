@@ -1,0 +1,42 @@
+# Core cryptographic libraries
+cryptography>=41.0.0
+pycryptodome>=3.19.0
+PyNaCl>=1.5.0
+
+# Post-quantum cryptography (note: liboqs-python may need manual build)
+# liboqs-python>=0.8.0
+
+# Network and protocol libraries
+requests>=2.31.0
+urllib3>=2.0.0
+paramiko>=3.3.0
+
+# Web framework support
+flask>=2.3.0
+fastapi>=0.103.0
+
+# Database support
+sqlalchemy>=2.0.0
+
+# Monitoring and logging
+structlog>=23.1.0
+
+# Testing framework
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-asyncio>=0.21.0
+
+# Development tools
+black>=23.7.0
+flake8>=6.0.0
+
+# Performance and benchmarking
+numpy>=1.24.0
+matplotlib>=3.7.0
+
+# Security testing
+bandit>=1.7.0
+safety>=2.3.0
+
+# Configuration management
+pyyaml>=6.0.0

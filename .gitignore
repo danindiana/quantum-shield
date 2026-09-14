@@ -1,0 +1,153 @@
+# Quantum Shield - Post-Quantum Cryptography Project
+# Git ignore file for security and build artifacts
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+*.swp
+*.swo
+
+# C/C++ (liboqs build artifacts)
+*.o
+*.so
+*.a
+*.dylib
+*.exe
+*.out
+build/
+*.cmake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Cryptographic material (CRITICAL - NEVER COMMIT PRIVATE KEYS!)
+*.key
+*.pem
+*.p12
+*.jks
+*.pfx
+*.crt
+*.csr
+private_keys/
+secrets/
+*secret*
+*private*
+ssh_host_*
+id_rsa*
+id_ed25519*
+id_ecdsa*
+
+# Configuration with secrets
+.env
+.env.local
+.env.*.local
+config.local.*
+*_secrets.yaml
+*_private.yaml
+
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+.tmp/
+*.tmp
+
+# Testing and coverage
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Documentation build
+_build/
+.doctrees/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Package managers
+node_modules/
+.npm
+.yarn/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# liboqs specific
+liboqs/build/
+liboqs/.git/
+
+# Project specific temp files
+benchmarks/results/
+tests/temp/
+examples/temp/
+
+# HSM and hardware security module files
+*.hsm
+*.token
+softhsm/
+
+# Certificate and key material that should never be committed
+ca/
+certificates/private/
+keys/private/
+
+# Quantum Shield specific
+quantum_shield.lock
+.quantum_shield/
+performance_data/
+audit_logs/liboqs/

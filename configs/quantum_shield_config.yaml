@@ -1,0 +1,70 @@
+# Quantum Shield Configuration
+version: "1.0"
+
+# Cryptographic Settings
+cryptography:
+  # Primary algorithms (NIST standards)
+  kem:
+    primary: "ML-KEM-768"
+    fallback: ["ML-KEM-512", "ML-KEM-1024"]
+  
+  signature:
+    primary: "ML-DSA-65"
+    fallback: ["ML-DSA-44", "ML-DSA-87"]
+  
+  hash_signature:
+    primary: "SLH-DSA-128s"
+    fallback: ["SLH-DSA-128f", "SLH-DSA-192s"]
+
+  # Hybrid mode during transition
+  hybrid_mode:
+    enabled: true
+    classical_kem: "X25519"
+    classical_signature: "Ed25519"
+
+# Security Levels
+security:
+  minimum_level: 3  # NIST Security Level 3 minimum
+  preferred_level: 3
+  maximum_level: 5
+  
+  # Key management
+  key_rotation_interval: 2592000  # 30 days in seconds
+  certificate_validity: 31536000  # 1 year in seconds
+  
+# Network Settings
+network:
+  tls:
+    min_version: "1.3"
+    cipher_suites:
+      - "TLS_KYBER768_WITH_AES_256_GCM_SHA384"
+      - "TLS_DILITHIUM3_WITH_AES_256_GCM_SHA384"
+    
+  timeouts:
+    connection: 30
+    handshake: 10
+    read: 30
+
+# Monitoring
+monitoring:
+  logging_level: "INFO"
+  audit_enabled: true
+  metrics_enabled: true
+  
+  # Performance thresholds
+  performance:
+    max_handshake_time: 0.1  # 100ms
+    max_signature_time: 0.005  # 5ms
+    max_verification_time: 0.002  # 2ms
+
+# HSM Integration
+hsm:
+  enabled: false
+  provider: "softhsm"  # or "aws-cloudhsm", "thales", etc.
+  slot: 0
+  
+# Development settings
+development:
+  debug: true
+  test_vectors: true
+  benchmark_mode: false

@@ -1,0 +1,54 @@
+{
+  "folders": [
+    {
+      "path": ".",
+      "name": "Quantum Shield - Post-Quantum Cryptography"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.git": false,
+      "**/__pycache__": true,
+      "**/*.pyc": true,
+      "oqs-provider": true
+    },
+    "search.exclude": {
+      "oqs-provider/**": true
+    },
+    "terminal.integrated.cwd": "${workspaceFolder}",
+    "terminal.integrated.env.linux": {
+      "OPENSSL_MODULES": "${env:HOME}/.local/lib/ossl-modules",
+      "LD_LIBRARY_PATH": "${env:HOME}/.local/lib:${env:LD_LIBRARY_PATH}"
+    },
+    "files.watcherExclude": {
+      "**/oqs-provider/**": true
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "ms-python.vscode-pylance",
+      "redhat.vscode-yaml",
+      "yzhang.markdown-all-in-one"
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Quick Status",
+        "type": "shell",
+        "command": "${workspaceFolder}/scripts/quick_status.sh",
+        "problemMatcher": [],
+        "group": "none"
+      },
+      {
+        "label": "Test PQ TLS",
+        "type": "shell",
+        "command": "python3 ${workspaceFolder}/test_pq_tls.py",
+        "problemMatcher": [],
+        "group": "test"
+      }
+    ]
+  }
+}
