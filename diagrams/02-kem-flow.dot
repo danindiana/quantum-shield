@@ -1,0 +1,35 @@
+digraph kemflow {
+  bgcolor="#0b0f14";
+  rankdir=LR;
+  fontname="Helvetica";
+  fontcolor="#c9d1d9";
+  labelloc="t";
+  label="ML-KEM-768 — key exchange sequence (MLKEM768 in kem.py)";
+  fontsize=20;
+  node [style=filled, fillcolor="#161b22", color="#39ffe0", fontcolor="#e6edf3", fontname="Helvetica", penwidth=2, shape=box, margin="0.25,0.15"];
+  edge [color="#8f5cff", fontcolor="#c9d1d9", fontname="Helvetica", penwidth=1.6, fontsize=11];
+
+  receiver_kg [label="receiver:\ngenerate_keypair()", color="#ffcb47"];
+  pk [label="public_key\n1184 bytes", shape=note, color="#39ffe0"];
+  sk [label="secret_key\n2400 bytes\n(kept private)", shape=note, color="#ff2ec4"];
+
+  sender_enc [label="sender:\nencapsulate(public_key)", color="#ffcb47"];
+  ct [label="ciphertext\n1088 bytes\n(sent to receiver)", shape=note];
+  ss_a [label="shared_secret_a\n32 bytes", shape=note, color="#39ffe0"];
+
+  receiver_dec [label="receiver:\ndecapsulate(secret_key,\nciphertext)", color="#ffcb47"];
+  ss_b [label="shared_secret_b\n32 bytes", shape=note, color="#39ffe0"];
+
+  match [label="shared_secret_a ==\nshared_secret_b\n(verified in\ntest_kem.py)", color="#ff2ec4"];
+
+  receiver_kg -> pk;
+  receiver_kg -> sk;
+  pk -> sender_enc [label="sent over\nthe wire"];
+  sender_enc -> ct;
+  sender_enc -> ss_a;
+  ct -> receiver_dec [label="sent over\nthe wire"];
+  sk -> receiver_dec;
+  receiver_dec -> ss_b;
+  ss_a -> match;
+  ss_b -> match;
+}

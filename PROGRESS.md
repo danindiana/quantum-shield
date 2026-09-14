@@ -12,9 +12,18 @@ individually in this fork in favor of one current summary).
   v0.14.1-dev (221 signature algorithms, 35 KEMs available).
 - **Library**: `src/algorithms/kem.py` (`MLKEM768`) and
   `src/algorithms/signature.py` (`Signature`, `MLDSA65`, `Falcon512`) —
-  real liboqs bindings, sizes read from the C struct at runtime, 11
+  real liboqs bindings, sizes read from the C struct at runtime, 16
   passing tests round-tripping encapsulate/decapsulate and sign/verify
   against the actual installed library.
+- **Docs/diagrams (2026-09-14)**: `docs/SYSTEM_ARCHITECTURE.md`,
+  `docs/FUTURE_DIRECTIONS.md`, `docs/RESEARCH_NOTES.md` (includes a real
+  first performance measurement, not simulated numbers),
+  `docs/BEST_PRACTICES.md` (timestamped, tied to specific findings), and
+  8 Graphviz diagrams in `diagrams/`.
+- **`quantum_shield.py`'s `verify_liboqs()`** now delegates to the shared
+  `algorithms._liboqs.load_liboqs()` loader instead of duplicating the
+  path-search logic — the duplication was found while drawing the module
+  map (`diagrams/05-repo-module-map.svg`).
 
 ## Not yet started
 

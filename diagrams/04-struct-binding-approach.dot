@@ -1,0 +1,38 @@
+digraph binding {
+  bgcolor="#0b0f14";
+  rankdir=TB;
+  fontname="Helvetica";
+  fontcolor="#c9d1d9";
+  labelloc="t";
+  label="how the ctypes binding works, and the bug it fixed";
+  fontsize=20;
+  node [style=filled, fillcolor="#161b22", color="#39ffe0", fontcolor="#e6edf3", fontname="Helvetica", penwidth=2, shape=box, margin="0.25,0.15"];
+  edge [color="#8f5cff", fontcolor="#c9d1d9", fontname="Helvetica", penwidth=1.6, fontsize=11];
+
+  subgraph cluster_old {
+    label="before this fork";
+    fontcolor="#ff2ec4";
+    color="#ff2ec4";
+    style=dashed;
+    old_new [label="OQS_SIG_new(alg)"];
+    old_hardcode [label="if \"ML-DSA-65\" in alg:\n  public_key_len = 1952\n  private_key_len = 4864  <- WRONG", color="#ff2ec4"];
+    old_alloc [label="allocate buffers at\nhardcoded (wrong) sizes"];
+    old_keypair [label="OQS_SIG_keypair(...)\nwrites real 4032 bytes,\nremaining 832 bytes stay\nzero-initialized padding", color="#ff2ec4"];
+    old_bug [label="every generated SSH key\nsilently zero-padded\nto the wrong length", shape=note, color="#ff2ec4"];
+  }
+
+  subgraph cluster_new {
+    label="this fork: src/algorithms/";
+    fontcolor="#39ffe0";
+    color="#39ffe0";
+    style=dashed;
+    new_new [label="OQS_SIG_new(alg)\n-> POINTER(OQS_SIG)"];
+    new_struct [label="ctypes.Structure mirrors\nliboqs's real field layout\n(sig.h, kem.h)", color="#39ffe0"];
+    new_read [label="struct.contents.length_secret_key\n-> 4032, read at runtime"];
+    new_alloc [label="allocate buffers at\nreal sizes"];
+    new_correct [label="correct for any\nalgorithm liboqs supports", shape=note, color="#39ffe0"];
+  }
+
+  old_new -> old_hardcode -> old_alloc -> old_keypair -> old_bug;
+  new_new -> new_struct -> new_read -> new_alloc -> new_correct;
+}

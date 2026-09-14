@@ -1,0 +1,32 @@
+digraph modulemap {
+  bgcolor="#0b0f14";
+  rankdir=LR;
+  fontname="Helvetica";
+  fontcolor="#c9d1d9";
+  labelloc="t";
+  label="repo module map — what depends on what";
+  fontsize=20;
+  node [style=filled, fillcolor="#161b22", color="#39ffe0", fontcolor="#e6edf3", fontname="Helvetica", penwidth=2, shape=box, margin="0.25,0.15"];
+  edge [color="#8f5cff", fontcolor="#c9d1d9", fontname="Helvetica", penwidth=1.6, fontsize=11];
+
+  tests_kem [label="tests/test_kem.py"];
+  tests_sig [label="tests/test_signature.py"];
+  tests_setup [label="tests/test_setup.py"];
+
+  kem [label="src/algorithms/kem.py", color="#39ffe0"];
+  sig [label="src/algorithms/signature.py", color="#39ffe0"];
+  liboqs_mod [label="src/algorithms/_liboqs.py"];
+
+  sshkeygen [label="simple_ssh_keygen.py"];
+  config [label="configs/quantum_shield_config.yaml"];
+  cli [label="quantum_shield.py", color="#ffcb47"];
+
+  tests_kem -> kem;
+  tests_sig -> sig;
+  tests_setup -> config;
+  kem -> liboqs_mod;
+  sig -> liboqs_mod;
+  sshkeygen -> sig;
+  cli -> config;
+  cli -> liboqs_mod [style=dashed, label="verify_liboqs()\n(separate ctypes check,\nnot yet using _liboqs.py)"];
+}

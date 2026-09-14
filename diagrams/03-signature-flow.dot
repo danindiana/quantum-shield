@@ -1,0 +1,31 @@
+digraph sigflow {
+  bgcolor="#0b0f14";
+  rankdir=LR;
+  fontname="Helvetica";
+  fontcolor="#c9d1d9";
+  labelloc="t";
+  label="ML-DSA-65 / Falcon-512 — sign/verify sequence (Signature in signature.py)";
+  fontsize=20;
+  node [style=filled, fillcolor="#161b22", color="#39ffe0", fontcolor="#e6edf3", fontname="Helvetica", penwidth=2, shape=box, margin="0.25,0.15"];
+  edge [color="#8f5cff", fontcolor="#c9d1d9", fontname="Helvetica", penwidth=1.6, fontsize=11];
+
+  signer_kg [label="signer:\ngenerate_keypair()", color="#ffcb47"];
+  pk [label="public_key\nML-DSA-65: 1952 bytes", shape=note, color="#39ffe0"];
+  sk [label="secret_key\nML-DSA-65: 4032 bytes\n(kept private)", shape=note, color="#ff2ec4"];
+
+  signer_sign [label="signer:\nsign(secret_key, message)", color="#ffcb47"];
+  signature [label="signature\nML-DSA-65: <=3309 bytes\n(variable length)", shape=note];
+
+  verifier [label="verifier:\nverify(public_key,\nmessage, signature)", color="#ffcb47"];
+  result_ok [label="True — signature valid", color="#39ffe0"];
+  result_bad [label="False — tampered message\nor wrong public key\n(never raises)", color="#ff2ec4"];
+
+  signer_kg -> pk;
+  signer_kg -> sk;
+  sk -> signer_sign;
+  signer_sign -> signature;
+  pk -> verifier [label="sent over\nthe wire"];
+  signature -> verifier [label="sent over\nthe wire"];
+  verifier -> result_ok [label="rc == 0"];
+  verifier -> result_bad [label="rc != 0"];
+}

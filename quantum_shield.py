@@ -31,31 +31,22 @@ def load_config(config_path):
         return None
 
 def verify_liboqs():
-    """Verify liboqs installation"""
+    """Verify liboqs installation.
+
+    Delegates to algorithms._liboqs.load_liboqs() -- the same loader
+    src/algorithms/kem.py and signature.py use -- instead of maintaining
+    a second, independent copy of the "search a few paths, try
+    ctypes.CDLL" logic. Two copies of that logic is exactly the kind of
+    drift that produced the hardcoded-key-size bug fixed in
+    signature.py; see docs/FUTURE_DIRECTIONS.md item 2.
+    """
+    from algorithms._liboqs import load_liboqs, LibOQSNotFoundError
     try:
-        # Try to load liboqs from system path
-        import ctypes
-        # Check for liboqs in common locations
-        possible_paths = [
-            str(Path.home() / ".local/lib/liboqs.so"),
-            "./liboqs/build/lib/liboqs.so",
-            "liboqs.so"
-        ]
-        
-        for path in possible_paths:
-            try:
-                lib = ctypes.CDLL(path)
-                print(f"✅ liboqs found at: {path}")
-                return True
-            except:
-                continue
-                
-        print("⚠️  liboqs not found in expected locations")
-        print("   Run: export LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH")
-        return False
-        
-    except Exception as e:
-        print(f"⚠️  Error checking liboqs: {e}")
+        load_liboqs()
+        print("✅ liboqs loaded successfully")
+        return True
+    except LibOQSNotFoundError as e:
+        print(f"⚠️  {e}")
         return False
 
 def run_basic_tests():

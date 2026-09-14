@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="diagrams/logo.svg" alt="quantum-shield" width="640">
+</p>
+
+<p align="center">
   <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-39ffe0?style=for-the-badge&labelColor=0b0f14">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-8f5cff?style=for-the-badge&labelColor=0b0f14">
   <img alt="Wraps liboqs" src="https://img.shields.io/badge/crypto-liboqs%20(Open%20Quantum%20Safe)-ffcb47?style=for-the-badge&labelColor=0b0f14">
@@ -7,7 +11,8 @@
 <p align="center">
   <img alt="FIPS 203" src="https://img.shields.io/badge/FIPS%20203-ML--KEM-39ffe0?style=flat-square&labelColor=0b0f14">
   <img alt="FIPS 204" src="https://img.shields.io/badge/FIPS%20204-ML--DSA-39ffe0?style=flat-square&labelColor=0b0f14">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-11%20passing-8f5cff?style=flat-square&labelColor=0b0f14">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-16%20passing-8f5cff?style=flat-square&labelColor=0b0f14">
+  <img alt="Diagrams" src="https://img.shields.io/badge/diagrams-8-8f5cff?style=flat-square&labelColor=0b0f14">
   <img alt="PRs welcome" src="https://img.shields.io/badge/PRs-welcome-39ffe0?style=flat-square&labelColor=0b0f14">
   <a href="https://github.com/danindiana/quantum-shield/commits/master"><img alt="Last commit" src="https://img.shields.io/github/last-commit/danindiana/quantum-shield?style=flat-square&labelColor=0b0f14"></a>
 </p>
@@ -43,10 +48,10 @@ through `openssl` + `oqs-provider`.
   (ML-DSA-65 or Falcon-512) using the library above.
 - **`test_pq_tls.py`** — generates real post-quantum TLS certificates by
   shelling out to `openssl` with the `oqs-provider` module loaded.
-- **11 passing tests** (`tests/test_kem.py`, `tests/test_signature.py`)
-  run against the actual installed `liboqs.so` — round-trip
-  encapsulate/decapsulate, sign/verify, and negative cases (tampered
-  message, wrong key) — not mocks.
+- **16 passing tests** (`tests/test_kem.py`, `tests/test_signature.py`,
+  `tests/test_setup.py`) run against the actual installed `liboqs.so` —
+  round-trip encapsulate/decapsulate, sign/verify, and negative cases
+  (tampered message, wrong key) — not mocks.
 
 ### A bug this refactor found and fixed
 
@@ -131,11 +136,31 @@ and full protocol integration (`src/protocols/`) are still empty
 directories — architecture laid out, not yet implemented. See
 [`PROGRESS.md`](PROGRESS.md) and [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
 
+## Diagrams
+
+8 Graphviz diagrams (dark background / neon palette), source `.dot`
+alongside rendered `.svg`/`.png` in [`diagrams/`](diagrams/):
+
+| # | Diagram | What it shows |
+|---|---|---|
+| 01 | [System architecture](diagrams/01-system-architecture.svg) | Full module map, external deps, what's wired vs. not |
+| 02 | [KEM flow](diagrams/02-kem-flow.svg) | ML-KEM-768 key exchange sequence, real byte sizes |
+| 03 | [Signature flow](diagrams/03-signature-flow.svg) | Sign/verify sequence for ML-DSA-65 / Falcon-512 |
+| 04 | [Struct binding approach](diagrams/04-struct-binding-approach.svg) | Before/after: the hardcoded-size bug vs. the struct-read fix |
+| 05 | [Repo module map](diagrams/05-repo-module-map.svg) | What imports what, including the duplicated-loader finding |
+| 06 | [Roadmap](diagrams/06-roadmap.svg) | Staged next steps, from `FUTURE_DIRECTIONS.md` |
+| 07 | [Trust boundary](diagrams/07-trust-boundary.svg) | What's upstream/vetted vs. this repo's own (not audited) code |
+| 08 | [Test coverage map](diagrams/08-test-coverage-map.svg) | What's covered by pytest vs. exercised manually vs. untested |
+
 ## Documentation
 
+- [System Architecture](docs/SYSTEM_ARCHITECTURE.md) — actual code structure and data flow
+- [Future Directions](docs/FUTURE_DIRECTIONS.md) — concrete next steps, checked not guessed
+- [Research Notes](docs/RESEARCH_NOTES.md) — dated findings, including real timing measurements
+- [Best Practices Log](docs/BEST_PRACTICES.md) — timestamped, tied to specific incidents (not generic advice)
 - [Implementation Plan](docs/IMPLEMENTATION_PLAN.md)
 - [NIST Standards Compliance](docs/NIST_COMPLIANCE.md)
-- [Security Architecture](docs/SECURITY_ARCHITECTURE.md)
+- [Security Architecture](docs/SECURITY_ARCHITECTURE.md) — security design rationale
 - [Deployment Guide](docs/DEPLOYMENT.md)
 - [SSH Post-Quantum Guide](docs/SSH_POST_QUANTUM_GUIDE.md) / [Quick Deploy](SSH_QUICK_DEPLOY.md)
 - [TLS/HTTPS PQ Research](docs/tls/TLS_PQ_RESEARCH.md)
@@ -149,7 +174,8 @@ quantum-shield/
 │   └── algorithms/     # kem.py, signature.py -- the real, tested library
 │   └── {protocols,utils,kms,pki}/   # empty, planned
 ├── tests/               # pytest, runs against a real liboqs build
-├── docs/                # implementation plan, NIST compliance, architecture
+├── diagrams/            # 8 Graphviz diagrams, dark/neon, .dot + rendered
+├── docs/                # architecture, future directions, research, best practices
 ├── scripts/             # SSH deployment automation
 ├── configs/              # SSH / algorithm configuration
 ├── benchmarks/, examples/  # placeholders, not yet populated

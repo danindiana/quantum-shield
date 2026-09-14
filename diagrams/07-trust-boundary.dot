@@ -1,0 +1,38 @@
+digraph trust {
+  bgcolor="#0b0f14";
+  rankdir=TB;
+  fontname="Helvetica";
+  fontcolor="#c9d1d9";
+  labelloc="t";
+  label="trust boundary — what this project does and doesn't vouch for";
+  fontsize=20;
+  node [style=filled, fillcolor="#161b22", color="#39ffe0", fontcolor="#e6edf3", fontname="Helvetica", penwidth=2, shape=box, margin="0.25,0.15"];
+  edge [color="#8f5cff", fontcolor="#c9d1d9", fontname="Helvetica", penwidth=1.6, fontsize=11];
+
+  subgraph cluster_upstream {
+    label="upstream, vetted (not audited by this project)";
+    fontcolor="#ffcb47";
+    color="#ffcb47";
+    style=dashed;
+    nist [label="NIST FIPS 203/204\nstandardized algorithms", color="#ffcb47"];
+    liboqs [label="liboqs (Open Quantum Safe)\nreference C implementation", color="#ffcb47"];
+    openssl [label="OpenSSL + oqs-provider", color="#ffcb47"];
+  }
+
+  subgraph cluster_thisrepo {
+    label="this repo — bindings and glue, NOT crypto primitives";
+    fontcolor="#39ffe0";
+    color="#39ffe0";
+    style=dashed;
+    binding [label="src/algorithms/\nctypes bindings", color="#39ffe0"];
+    cli [label="quantum_shield.py,\nsimple_ssh_keygen.py"];
+  }
+
+  notaudited [label="NOT audited as a whole:\nno independent security review\nof this repo's code\nhas been performed", shape=note, color="#ff2ec4"];
+
+  nist -> liboqs -> binding;
+  openssl -> cli;
+  binding -> cli;
+  cli -> notaudited;
+  binding -> notaudited;
+}

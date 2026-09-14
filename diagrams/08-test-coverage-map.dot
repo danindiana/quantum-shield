@@ -1,0 +1,40 @@
+digraph coverage {
+  bgcolor="#0b0f14";
+  rankdir=LR;
+  fontname="Helvetica";
+  fontcolor="#c9d1d9";
+  labelloc="t";
+  label="test coverage map — what's actually verified vs. exercised manually";
+  fontsize=20;
+  node [style=filled, fillcolor="#161b22", color="#39ffe0", fontcolor="#e6edf3", fontname="Helvetica", penwidth=2, shape=box, margin="0.25,0.15"];
+  edge [color="#8f5cff", fontcolor="#c9d1d9", fontname="Helvetica", penwidth=1.6, fontsize=11];
+
+  subgraph cluster_tested {
+    label="covered by pytest (16 tests)";
+    fontcolor="#39ffe0";
+    color="#39ffe0";
+    style=dashed;
+    kem_tests [label="MLKEM768: sizes, keypair,\nencaps/decaps round-trip,\nwrong-key rejection", color="#39ffe0"];
+    sig_tests [label="Signature/MLDSA65: sizes,\nkeypair, sign/verify,\ntampered-message rejection,\nwrong-key rejection", color="#39ffe0"];
+    setup_tests [label="project structure,\nconfig file, liboqs presence"];
+  }
+
+  subgraph cluster_manual {
+    label="exercised manually this session, not in pytest";
+    fontcolor="#ffcb47";
+    color="#ffcb47";
+    style=dashed;
+    ssh_manual [label="simple_ssh_keygen.py\nend-to-end (both algorithms)"];
+    falcon_manual [label="Falcon512 subclass"];
+  }
+
+  subgraph cluster_untested {
+    label="not exercised at all";
+    fontcolor="#ff2ec4";
+    color="#ff2ec4";
+    style=dashed;
+    tls [label="test_pq_tls.py\n(needs oqs-provider built)"];
+    slhdsa [label="SLH-DSA\n(disabled in this liboqs build)"];
+    cli_untested [label="quantum_shield.py\nbenchmark/server commands"];
+  }
+}
