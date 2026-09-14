@@ -44,9 +44,20 @@ module dependency graph.
   `verify_liboqs()` status check); its `benchmark`/`server` subcommands
   don't call `kem.py`/`signature.py` yet (`FUTURE_DIRECTIONS.md` item 2).
 
+**`src/kms/`** — key storage, started (rotation/revocation not yet):
+- `store.py` — `KeyStore`. Takes any `(public_key, secret_key)` pair
+  from `src/algorithms/` and encrypts it at rest: scrypt derives a
+  256-bit AES key from a passphrase, AES-256-GCM encrypts the key
+  material with the store entry's `name` bound in as AEAD associated
+  data (so a ciphertext file can't be silently swapped between entries
+  without decryption failing). One JSON file per key on disk, metadata
+  in plaintext, key bytes encrypted. Not yet wired into
+  `simple_ssh_keygen.py` — see `FUTURE_DIRECTIONS.md`. See
+  [diagram 10](../diagrams/10-kms-store.svg).
+
 **Not yet connected to anything:**
-- `src/kms/`, `src/pki/`, `src/protocols/tls/` — directory skeleton only,
-  no files. See `FUTURE_DIRECTIONS.md` for what each is meant to hold.
+- `src/pki/`, `src/protocols/tls/` — directory skeleton only, no files.
+  See `FUTURE_DIRECTIONS.md` for what each is meant to hold.
 
 ## Why the struct-mirroring approach, specifically
 

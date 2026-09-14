@@ -6,6 +6,33 @@ copied from a style guide. Newest first.
 
 ---
 
+### 2026-09-14 — Bind identifying context into an AEAD ciphertext as associated data
+
+**What happened:** designing `src/kms/store.py`'s file format, the key's
+`name` (its filename-derived identity) was passed to
+`AESGCM.encrypt(...)`/`decrypt(...)` as `associated_data`, not just used
+to pick which file to read.
+
+**Practice:** when a ciphertext's *meaning* depends on context outside
+the ciphertext itself (here: which key this is supposed to be), bind
+that context into the AEAD call as associated data, not just as
+surrounding metadata a caller is trusted to check. Without this, an
+attacker with write access to the keystore directory could rename or
+swap two encrypted files, and `load_keypair("key-a", ...)` would happily
+decrypt what was actually `key-b`'s ciphertext (its passphrase-derived
+key differs per-file via the per-file random salt, so cross-decryption
+would usually fail on its own here — but relying on that coincidence
+instead of explicitly authenticating the binding is fragile design, not
+a deliberate guarantee).
+
+**How to apply here:** any future addition to `src/kms/` that encrypts
+data tied to an identifier (a rotation generation number, an owner user
+ID, an algorithm name) should bind that identifier as AEAD associated
+data the same way, rather than trusting the caller to have looked up the
+right file.
+
+---
+
 ### 2026-09-14 — A CLI's status output is a security claim; don't let it drift from the code
 
 **What happened:** `quantum_shield.py server`'s banner claimed

@@ -11,8 +11,8 @@
 <p align="center">
   <img alt="FIPS 203" src="https://img.shields.io/badge/FIPS%20203-ML--KEM-39ffe0?style=flat-square&labelColor=0b0f14">
   <img alt="FIPS 204" src="https://img.shields.io/badge/FIPS%20204-ML--DSA-39ffe0?style=flat-square&labelColor=0b0f14">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-16%20passing-8f5cff?style=flat-square&labelColor=0b0f14">
-  <img alt="Diagrams" src="https://img.shields.io/badge/diagrams-9-8f5cff?style=flat-square&labelColor=0b0f14">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-27%20passing-8f5cff?style=flat-square&labelColor=0b0f14">
+  <img alt="Diagrams" src="https://img.shields.io/badge/diagrams-10-8f5cff?style=flat-square&labelColor=0b0f14">
   <img alt="PRs welcome" src="https://img.shields.io/badge/PRs-welcome-39ffe0?style=flat-square&labelColor=0b0f14">
   <a href="https://github.com/danindiana/quantum-shield/commits/master"><img alt="Last commit" src="https://img.shields.io/github/last-commit/danindiana/quantum-shield?style=flat-square&labelColor=0b0f14"></a>
 </p>
@@ -58,10 +58,16 @@ through `openssl` + `oqs-provider`.
   shared secret. **This is a protocol demo, not a security protocol**: no
   authentication of the server's public key, no transport encryption, no
   replay protection. See [diagram 09](diagrams/09-demo-server-client.svg).
-- **16 passing tests** (`tests/test_kem.py`, `tests/test_signature.py`,
-  `tests/test_setup.py`) run against the actual installed `liboqs.so` —
-  round-trip encapsulate/decapsulate, sign/verify, and negative cases
-  (tampered message, wrong key) — not mocks.
+- **`src/kms/store.py`** — `KeyStore`: passphrase-encrypted at-rest
+  storage for any keypair from the library above (AES-256-GCM, scrypt
+  KDF, key name bound as AEAD associated data). **Not yet wired into
+  `simple_ssh_keygen.py`**, which still writes raw keys to `~/.ssh/` —
+  see [diagram 10](diagrams/10-kms-store.svg) and `examples/kms_demo.py`.
+- **27 passing tests** (`tests/test_kem.py`, `tests/test_signature.py`,
+  `tests/test_setup.py`, `tests/test_kms.py`) run against the actual
+  installed `liboqs.so` and real `cryptography` primitives — round-trip
+  encapsulate/decapsulate, sign/verify, encrypt/decrypt, and negative
+  cases (tampered message, wrong key, wrong passphrase) — not mocks.
 
 ### A bug this refactor found and fixed
 
@@ -137,18 +143,30 @@ signature = sig.sign(sk, b"a message")
 assert sig.verify(pk, b"a message", signature)
 ```
 
+```python
+from src.kms.store import KeyStore
+
+# Store any keypair from the library above, encrypted at rest
+store = KeyStore()  # defaults to ~/.quantum-shield/keystore/
+store.save_keypair("my-signing-key", "ML-DSA-65", "signature", pk, sk, "a strong passphrase")
+loaded = store.load_keypair("my-signing-key", "a strong passphrase")
+assert loaded["secret_key"] == sk
+```
+
 ## What's still planned
 
 Carried over honestly from the project's own status tracking rather than
 overstated: SSH deployment (`scripts/ssh/`) and TLS certificate generation
-work today; a proper key-management layer (`src/kms/`), PKI (`src/pki/`),
-and full protocol integration (`src/protocols/`) are still empty
-directories — architecture laid out, not yet implemented. See
-[`PROGRESS.md`](PROGRESS.md) and [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
+work today; `src/kms/` now has a real, tested key store (see above) but
+it isn't wired into `simple_ssh_keygen.py` yet and has no rotation or
+revocation; PKI (`src/pki/`) and full protocol integration
+(`src/protocols/`) are still empty directories — architecture laid out,
+not yet implemented. See [`PROGRESS.md`](PROGRESS.md) and
+[`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
 
 ## Diagrams
 
-9 Graphviz diagrams (dark background / neon palette), source `.dot`
+10 Graphviz diagrams (dark background / neon palette), source `.dot`
 alongside rendered `.svg`/`.png` in [`diagrams/`](diagrams/):
 
 | # | Diagram | What it shows |
@@ -162,6 +180,7 @@ alongside rendered `.svg`/`.png` in [`diagrams/`](diagrams/):
 | 07 | [Trust boundary](diagrams/07-trust-boundary.svg) | What's upstream/vetted vs. this repo's own (not audited) code |
 | 08 | [Test coverage map](diagrams/08-test-coverage-map.svg) | What's covered by pytest vs. exercised manually vs. untested |
 | 09 | [Demo server/client](diagrams/09-demo-server-client.svg) | The real over-the-wire ML-KEM-768 handshake, and its explicit non-goals |
+| 10 | [KMS store](diagrams/10-kms-store.svg) | Passphrase-encrypted key storage: scrypt + AES-256-GCM, and what's still missing |
 
 ## Documentation
 
@@ -182,14 +201,16 @@ alongside rendered `.svg`/`.png` in [`diagrams/`](diagrams/):
 ```
 quantum-shield/
 ├── src/
-│   └── algorithms/     # kem.py, signature.py -- the real, tested library
-│   └── {protocols,utils,kms,pki}/   # empty, planned
+│   ├── algorithms/     # kem.py, signature.py -- the real, tested library
+│   ├── kms/            # store.py -- encrypted key storage, tested, not yet wired in
+│   └── {protocols,utils,pki}/   # empty, planned
 ├── tests/               # pytest, runs against a real liboqs build
-├── diagrams/            # 8 Graphviz diagrams, dark/neon, .dot + rendered
+├── diagrams/            # 10 Graphviz diagrams, dark/neon, .dot + rendered
 ├── docs/                # architecture, future directions, research, best practices
 ├── scripts/             # SSH deployment automation
 ├── configs/              # SSH / algorithm configuration
-├── benchmarks/, examples/  # placeholders, not yet populated
+├── benchmarks/           # timing results land here (gitignored)
+├── examples/             # kem_demo_client.py, kms_demo.py
 ├── simple_ssh_keygen.py, test_pq_tls.py, test_liboqs.py
 └── quantum_shield.py     # CLI entry point (setup/test/status/benchmark/server)
 ```

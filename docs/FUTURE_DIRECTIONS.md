@@ -37,11 +37,26 @@ guess about what would be nice to have. See
    the `verify_liboqs()` duplication in item 1: two places asserting the
    same fact, able to silently disagree.
 
-## Medium-term (real scope, not started)
+## Medium-term (real scope, some started)
 
-4. **`src/kms/`** — key storage, rotation, and revocation. Currently an
-   empty directory. `simple_ssh_keygen.py` writes raw keys straight to
-   `~/.ssh/` with no lifecycle management at all.
+4. ~~**`src/kms/`** — key storage.~~ **Started.** `src/kms/store.py`
+   (`KeyStore`) now provides passphrase-encrypted at-rest storage
+   (AES-256-GCM, scrypt-derived key, key name bound as AEAD associated
+   data) for any keypair produced by `src/algorithms/`. 11 tests in
+   `tests/test_kms.py`, demoed in `examples/kms_demo.py`. See
+   [diagram 10](../diagrams/10-kms-store.svg).
+
+   **Not done yet, and this remains a real gap:**
+   - **`simple_ssh_keygen.py` still writes raw, unencrypted key bytes to
+     `~/.ssh/`** — it does not use `KeyStore` at all. Wiring it in (an
+     `--encrypt` flag, prompting via `getpass`) is the natural next step
+     but wasn't done this pass, to keep the store's own correctness
+     review separate from a UX change to an existing script.
+   - **Key rotation** — no way to mark a stored key as superseded or
+     roll to a new one.
+   - **Revocation** — no revocation list or expiry concept at all.
+   - **No hardware-backed storage** (HSM/TPM) — this is a plain file on
+     disk, encrypted, but a file nonetheless.
 5. **`src/pki/`** — certificate authority / trust chain handling beyond
    the single self-signed cert `test_pq_tls.py` generates via the
    `openssl` CLI.

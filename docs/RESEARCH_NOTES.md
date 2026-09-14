@@ -6,6 +6,29 @@ background (that's in `NIST_COMPLIANCE.md`).
 
 ---
 
+## 2026-09-14 — Key storage was entirely absent; added and tested a minimal version
+
+Before this entry, `simple_ssh_keygen.py` was the only code path in this
+repo that persisted key material at all, and it writes raw bytes to
+`~/.ssh/` with no encryption — `src/kms/` was an empty directory with no
+plan more specific than "key management" in the original project's
+status files.
+
+Added `src/kms/store.py` (`KeyStore`): AES-256-GCM encryption of key
+material at rest, key derived from a passphrase via scrypt with
+N=2^14, r=8, p=1 — RFC 7914's recommended parameters for interactive
+logins, chosen as a reasonable default rather than tuned or benchmarked
+against this hardware; a real deployment should re-evaluate these
+against current guidance, not assume they're right forever. The store's
+`name` is bound in as AEAD associated data specifically to prevent
+silently swapping one encrypted key file for another without detection.
+
+**Deliberately out of scope for this addition:** key rotation, revocation,
+multi-user access control, hardware-backed storage. This is "don't write
+plaintext keys to disk," not a full KMS. See `docs/FUTURE_DIRECTIONS.md`.
+
+---
+
 ## 2026-09-14 — First real over-the-wire key exchange
 
 Verified `quantum_shield.py server` and the new

@@ -1,0 +1,35 @@
+digraph kms {
+  bgcolor="#0b0f14";
+  rankdir=TB;
+  fontname="Helvetica";
+  fontcolor="#c9d1d9";
+  labelloc="t";
+  label="src/kms/store.py — passphrase-encrypted key storage";
+  fontsize=20;
+  node [style=filled, fillcolor="#161b22", color="#39ffe0", fontcolor="#e6edf3", fontname="Helvetica", penwidth=2, shape=box, margin="0.25,0.15"];
+  edge [color="#8f5cff", fontcolor="#c9d1d9", fontname="Helvetica", penwidth=1.6, fontsize=11];
+
+  keygen [label="MLKEM768 / Signature\ngenerate_keypair()", color="#ffcb47"];
+  passphrase [label="passphrase (string)", color="#ffcb47"];
+
+  save [label="KeyStore.save_keypair(...)", shape=diamond, color="#ff2ec4"];
+  scrypt [label="scrypt(passphrase, salt)\n-> 256-bit AES key"];
+  aesgcm [label="AES-256-GCM encrypt\n(name bound as AAD)"];
+  diskfile [label="<name>.qskey.json\nmode 0600\nplaintext: algorithm, key_type,\ncreated_utc, salt, nonce\nencrypted: public_key, secret_key", shape=note, color="#39ffe0"];
+
+  load [label="KeyStore.load_keypair(...)", shape=diamond, color="#ff2ec4"];
+  wrongpw [label="WrongPassphraseError\n(bad passphrase OR\ntampered file --\nAEAD can't tell which)", color="#ff2ec4"];
+  correctpw [label="original keypair bytes,\nverified round-trip in\ntests/test_kms.py", color="#39ffe0"];
+
+  missing [label="NOT included:\nkey rotation, multi-user ACL,\nHSM/TPM backing --\nsee FUTURE_DIRECTIONS.md", shape=note, color="#8a99a8"];
+
+  keygen -> save;
+  passphrase -> save;
+  save -> scrypt -> aesgcm -> diskfile;
+
+  diskfile -> load;
+  passphrase -> load;
+  load -> wrongpw [label="AEAD tag\ncheck fails"];
+  load -> correctpw [label="AEAD tag\ncheck passes"];
+  diskfile -> missing [style=dotted];
+}

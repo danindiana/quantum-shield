@@ -42,10 +42,20 @@ individually in this fork in favor of one current summary).
   `benchmark`/`server` from "untested" to "exercised manually."
 - **`run_basic_tests()`'s required-directory list** now matches
   `tests/test_setup.py`'s (both check `diagrams`, previously only one did).
+- **`src/kms/store.py`** (`KeyStore`) — passphrase-encrypted at-rest key
+  storage (AES-256-GCM, scrypt KDF, key name bound as AEAD associated
+  data). 11 tests in `tests/test_kms.py` (27 total now), demoed in
+  `examples/kms_demo.py`. `simple_ssh_keygen.py` does **not** use this
+  yet — it still writes raw keys to `~/.ssh/`, see "Not yet started."
+  10th diagram (`diagrams/10-kms-store.svg`) added.
 
 ## Not yet started
 
-- `src/kms/` — key management (storage, rotation, revocation). Empty.
+- **Wiring `KeyStore` into `simple_ssh_keygen.py`** (e.g. an `--encrypt`
+  flag) — the store exists and is tested; the existing script hasn't
+  been changed to use it yet.
+- `src/kms/` **rotation and revocation** — the store has save/load/list/
+  delete; no concept of superseding a key or an expiry/revocation list.
 - `src/pki/` — certificate authority / trust chain handling. Empty.
 - `src/protocols/tls/` — TLS integration beyond manual `openssl` CLI
   certificate generation (i.e., an actual PQ-TLS server/client, not just
