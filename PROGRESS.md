@@ -5,6 +5,14 @@ individually in this fork in favor of one current summary).
 
 ## Working today
 
+- **`Makefile`, fixed (2026-09-14)**: every target except `help`/`clean`
+  was silently broken since it was written (`source venv/bin/activate`
+  doesn't work under `/bin/sh`, which is what `make` actually uses), and
+  `make test` never called `pytest` at all. Fixed all targets to invoke
+  `venv/bin/python3` directly, wired `test` to the real 48-test suite,
+  added a `venv` bootstrap target, fixed `docs`' dead references to two
+  files dropped in this fork's first commit. Verified end-to-end against
+  a freshly created venv, not a pre-existing one.
 - **SSH**: post-quantum SSH keypair generation (ML-DSA-65, Falcon-512) via
   `simple_ssh_keygen.py`, backed by `src/algorithms/signature.py`.
 - **TLS**: post-quantum certificate generation via `openssl` +

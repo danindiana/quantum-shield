@@ -6,6 +6,33 @@ copied from a style guide. Newest first.
 
 ---
 
+### 2026-09-14 — "It's in the Makefile" isn't evidence it runs; test the exact invocation, not the intent
+
+**What happened:** the `Makefile` had `source venv/bin/activate && ...`
+in six targets, every one of which fails outright under `/bin/sh` (no
+`source` builtin) — and `make test` never actually called `pytest`, only
+a ~10-line CLI self-check, despite a real 48-test suite existing. This
+had been true since the file was first written; nothing in this session
+(or the original project) had run `make test` and looked at the result,
+because the *intent* of the target ("this runs the tests") read as
+correct on inspection.
+
+**Practice:** a Makefile target, a CI step, a documented command — any
+of these can look obviously correct from reading it and still be dead
+on arrival. The only way to know is to actually run it, in an
+environment that doesn't inherit assumptions from the one you're editing
+in (e.g. `env -i` to strip inherited shell state, or a genuinely fresh
+venv rather than one already active). "It's in the Makefile/README/CI
+config" is not evidence it works; running it is.
+
+**How to apply here:** this session already grepped for stale doc
+references before calling changes done (the "diagrams rot" and dead-link
+checks) — the same discipline needs to extend to anything meant to be
+*executed*, not just read, whenever touching a file that defines
+commands (`Makefile`, CI workflows, setup scripts).
+
+---
+
 ### 2026-09-14 — Separate "parse structure" from "verify content" when deciding what's safe to build yourself
 
 **What happened:** `src/pki/certs.py` needed to work with X.509

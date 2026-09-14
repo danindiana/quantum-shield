@@ -6,6 +6,39 @@ background (that's in `NIST_COMPLIANCE.md`).
 
 ---
 
+## 2026-09-14 — The Makefile had been completely non-functional since it was written
+
+Checked something nobody had touched all session: the `Makefile`. Ran
+`make test` in a clean environment (`env -i`, no inherited shell state)
+to see what a fresh clone actually experiences. Result:
+`sh: 1: source: not found`, exit 127 — every target using
+`source venv/bin/activate && ...` (that's `setup`, `test`, `install`,
+`benchmark`, `status`, `server` — everything except `help` and `clean`)
+fails immediately, because `make` invokes recipes with `/bin/sh`, and
+`source` is a bash builtin, not a POSIX `sh` one.
+
+Separately, `make test` — even if it had run — only called
+`quantum_shield.py test` (the CLI's own ~10-line self-check), never
+`pytest`. The actual 48-test suite this session built had no `make`
+entry point calling it at all.
+
+Fixed both: every target now calls `venv/bin/python3`/`venv/bin/pytest`
+directly (works under any `/bin/sh`), `test` runs the real pytest suite,
+and a new `venv` target bootstraps a fresh virtualenv from
+`requirements.txt`. Verified end-to-end by actually creating a brand new
+venv via `make venv` (not reusing any existing one) and running every
+target through it — `test` (48 passed), `docs`, `status`, `benchmark`,
+`pki-demo`, `security`, `test-cli`, `clean`.
+
+Also found while fixing `docs`: it referenced `QUICK_REFERENCE.md` and
+`PROJECT_STATUS.md`, both dropped in this repo's very first commit (the
+initial fork consolidation) — an eleven-commit-old dead reference nobody
+had checked either. Grepped the whole repo for every other file dropped
+in that consolidation; the Makefile was the only place any of them still
+appeared.
+
+---
+
 ## 2026-09-14 — Verified a real PQ X.509 certificate end-to-end, without reimplementing DER
 
 Investigated whether `src/pki/` could offer more than documentation

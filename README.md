@@ -102,7 +102,26 @@ any algorithm liboqs supports — verified by comparing the new code's
 reported sizes against the actual FIPS 203/204 spec sizes in
 `tests/test_kem.py` / `tests/test_signature.py`.
 
+### A second bug, found doing routine maintenance
+
+The `Makefile`'s `test`/`setup`/`benchmark`/`status`/`server`/`install`
+targets all used `source venv/bin/activate && <command>`. `make` runs
+recipes with `/bin/sh` by default (dash on Debian/Ubuntu), which has no
+`source` builtin — every one of those targets failed immediately with
+`sh: 1: source: not found`, confirmed by actually running `make test` in
+a clean environment. They'd been broken since this Makefile was first
+written; nothing had ever run them. Fixed by invoking `venv/bin/python3`
+directly instead of relying on shell activation, and by actually wiring
+`make test` to run the pytest suite (48 tests) — it previously only ran
+`quantum_shield.py`'s own basic self-check, never pytest at all. Verified
+by creating a fresh venv from scratch via the new `make venv` target and
+running every target through it.
+
 ## Quick start
+
+The `Makefile` wraps most of this (`make venv && make test`); the manual
+steps below are equivalent and useful if you want to see what each step
+actually does:
 
 ```bash
 git clone https://github.com/danindiana/quantum-shield.git
