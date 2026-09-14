@@ -5,6 +5,17 @@ individually in this fork in favor of one current summary).
 
 ## Working today
 
+- **CI (2026-09-14)**: `.github/workflows/tests.yml` builds liboqs
+  `0.15.0` + oqs-provider `0.11.0` from pinned tags (verified compatible
+  pairing — a newer "latest" pairing of both actually fails to compile)
+  and runs the full 48-test suite on every push/PR. Verified with a real
+  run on GitHub Actions (`gh run watch`), not just YAML that looks
+  right: all steps green, 48 passed, in ~4 minutes. Caught and fixed a
+  genuinely subtle bug along the way — `liboqs_DIR` must be an
+  environment variable, not a `-D` CMake flag, or oqs-provider silently
+  links against a different liboqs with zero build errors. README's
+  "Building liboqs" section updated with the same corrected, verified
+  commands.
 - **`Makefile`, fixed (2026-09-14)**: every target except `help`/`clean`
   was silently broken since it was written (`source venv/bin/activate`
   doesn't work under `/bin/sh`, which is what `make` actually uses), and

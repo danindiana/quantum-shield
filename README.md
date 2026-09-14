@@ -15,6 +15,7 @@
   <img alt="Diagrams" src="https://img.shields.io/badge/diagrams-12-8f5cff?style=flat-square&labelColor=0b0f14">
   <img alt="PRs welcome" src="https://img.shields.io/badge/PRs-welcome-39ffe0?style=flat-square&labelColor=0b0f14">
   <a href="https://github.com/danindiana/quantum-shield/commits/master"><img alt="Last commit" src="https://img.shields.io/github/last-commit/danindiana/quantum-shield?style=flat-square&labelColor=0b0f14"></a>
+  <a href="https://github.com/danindiana/quantum-shield/actions/workflows/tests.yml"><img alt="Tests" src="https://github.com/danindiana/quantum-shield/actions/workflows/tests.yml/badge.svg"></a>
 </p>
 
 ---
