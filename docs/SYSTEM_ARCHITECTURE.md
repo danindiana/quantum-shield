@@ -37,12 +37,18 @@ module dependency graph.
 **Consumers of `src/algorithms/`:**
 - `simple_ssh_keygen.py` — uses `Signature(algorithm)` to generate real
   SSH keypairs, base64-encodes them into (a simplified) OpenSSH key
-  format.
-- `tests/test_kem.py`, `tests/test_signature.py` — integration tests
-  against the real installed `liboqs.so`.
-- `quantum_shield.py` — currently only uses `algorithms._liboqs` (for its
-  `verify_liboqs()` status check); its `benchmark`/`server` subcommands
-  don't call `kem.py`/`signature.py` yet (`FUTURE_DIRECTIONS.md` item 2).
+  format. With `--encrypt`, stores the private key via `src/kms/store.py`
+  instead of writing a plaintext file (see below).
+- `tests/test_kem.py`, `tests/test_signature.py`, `tests/test_kms.py` —
+  integration tests against the real installed `liboqs.so` and real
+  `cryptography` primitives.
+- `quantum_shield.py` — `verify_liboqs()` uses `algorithms._liboqs`
+  directly; `benchmark` and `server` use `algorithms.kem`/`signature` for
+  real timings and a real TCP key-exchange demo respectively (both were
+  simulated/fake before — see `FUTURE_DIRECTIONS.md`'s struck-through
+  items 2-3 for that history).
+- `examples/kem_demo_client.py`, `examples/kms_demo.py` — standalone
+  usage demonstrations, not part of the CLI.
 
 **`src/kms/`** — key storage, started (rotation/revocation not yet):
 - `store.py` — `KeyStore`. Takes any `(public_key, secret_key)` pair
@@ -51,8 +57,8 @@ module dependency graph.
   material with the store entry's `name` bound in as AEAD associated
   data (so a ciphertext file can't be silently swapped between entries
   without decryption failing). One JSON file per key on disk, metadata
-  in plaintext, key bytes encrypted. Not yet wired into
-  `simple_ssh_keygen.py` — see `FUTURE_DIRECTIONS.md`. See
+  in plaintext, key bytes encrypted. Wired into `simple_ssh_keygen.py`'s
+  `--encrypt` flag (default behavior unchanged without it). See
   [diagram 10](../diagrams/10-kms-store.svg).
 
 **Not yet connected to anything:**

@@ -46,12 +46,17 @@ guess about what would be nice to have. See
    `tests/test_kms.py`, demoed in `examples/kms_demo.py`. See
    [diagram 10](../diagrams/10-kms-store.svg).
 
+   ~~**`simple_ssh_keygen.py` still writes raw, unencrypted key bytes to
+   `~/.ssh/`.**~~ **Done.** Added a `--encrypt` flag: with it, the
+   private key is stored via `KeyStore` (passphrase prompted twice via
+   `getpass`, no echo) instead of written as a plaintext file; the
+   public key still gets written as a plain file as before (it isn't
+   secret). Default behavior (no flag) is unchanged, so this is additive,
+   not a breaking change. Verified: plaintext mode still produces
+   identical output to before; encrypt mode round-trips correctly
+   through `KeyStore.load_keypair()`.
+
    **Not done yet, and this remains a real gap:**
-   - **`simple_ssh_keygen.py` still writes raw, unencrypted key bytes to
-     `~/.ssh/`** — it does not use `KeyStore` at all. Wiring it in (an
-     `--encrypt` flag, prompting via `getpass`) is the natural next step
-     but wasn't done this pass, to keep the store's own correctness
-     review separate from a UX change to an existing script.
    - **Key rotation** — no way to mark a stored key as superseded or
      roll to a new one.
    - **Revocation** — no revocation list or expiry concept at all.

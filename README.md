@@ -45,7 +45,9 @@ through `openssl` + `oqs-provider`.
   subclasses: real keypair generation, signing, and verification via
   liboqs's `OQS_SIG` C API, same struct-read approach.
 - **`simple_ssh_keygen.py`** — generates real post-quantum SSH keypairs
-  (ML-DSA-65 or Falcon-512) using the library above.
+  (ML-DSA-65 or Falcon-512) using the library above. Pass `--encrypt` to
+  store the private key encrypted at rest (via `KeyStore`, passphrase
+  prompted twice) instead of writing it as a plaintext file.
 - **`test_pq_tls.py`** — generates real post-quantum TLS certificates by
   shelling out to `openssl` with the `oqs-provider` module loaded.
 - **`quantum_shield.py benchmark`** — real timings (not simulated) for
@@ -60,9 +62,9 @@ through `openssl` + `oqs-provider`.
   replay protection. See [diagram 09](diagrams/09-demo-server-client.svg).
 - **`src/kms/store.py`** — `KeyStore`: passphrase-encrypted at-rest
   storage for any keypair from the library above (AES-256-GCM, scrypt
-  KDF, key name bound as AEAD associated data). **Not yet wired into
-  `simple_ssh_keygen.py`**, which still writes raw keys to `~/.ssh/` —
-  see [diagram 10](diagrams/10-kms-store.svg) and `examples/kms_demo.py`.
+  KDF, key name bound as AEAD associated data), now wired into
+  `simple_ssh_keygen.py --encrypt` (see above). See
+  [diagram 10](diagrams/10-kms-store.svg) and `examples/kms_demo.py`.
 - **27 passing tests** (`tests/test_kem.py`, `tests/test_signature.py`,
   `tests/test_setup.py`, `tests/test_kms.py`) run against the actual
   installed `liboqs.so` and real `cryptography` primitives — round-trip
@@ -157,8 +159,8 @@ assert loaded["secret_key"] == sk
 
 Carried over honestly from the project's own status tracking rather than
 overstated: SSH deployment (`scripts/ssh/`) and TLS certificate generation
-work today; `src/kms/` now has a real, tested key store (see above) but
-it isn't wired into `simple_ssh_keygen.py` yet and has no rotation or
+work today; `src/kms/` now has a real, tested key store wired into
+`simple_ssh_keygen.py --encrypt` (see above) but still has no rotation or
 revocation; PKI (`src/pki/`) and full protocol integration
 (`src/protocols/`) are still empty directories — architecture laid out,
 not yet implemented. See [`PROGRESS.md`](PROGRESS.md) and
@@ -202,7 +204,7 @@ alongside rendered `.svg`/`.png` in [`diagrams/`](diagrams/):
 quantum-shield/
 ├── src/
 │   ├── algorithms/     # kem.py, signature.py -- the real, tested library
-│   ├── kms/            # store.py -- encrypted key storage, tested, not yet wired in
+│   ├── kms/            # store.py -- encrypted key storage, wired into --encrypt
 │   └── {protocols,utils,pki}/   # empty, planned
 ├── tests/               # pytest, runs against a real liboqs build
 ├── diagrams/            # 10 Graphviz diagrams, dark/neon, .dot + rendered

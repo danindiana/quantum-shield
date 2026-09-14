@@ -9,18 +9,25 @@ digraph architecture {
   node [style=filled, fillcolor="#161b22", color="#39ffe0", fontcolor="#e6edf3", fontname="Helvetica", penwidth=2, shape=box, margin="0.25,0.15"];
   edge [color="#8f5cff", fontcolor="#c9d1d9", fontname="Helvetica", penwidth=1.6, fontsize=11];
 
-  cli [label="quantum_shield.py\nCLI (setup/test/status/\nbenchmark*/server*)", color="#ffcb47"];
-  sshkeygen [label="simple_ssh_keygen.py"];
+  cli [label="quantum_shield.py\nCLI (setup/test/status/\nbenchmark/server)", color="#ffcb47"];
+  sshkeygen [label="simple_ssh_keygen.py\n--encrypt flag", color="#ffcb47"];
   tlstest [label="test_pq_tls.py"];
+  democlient [label="examples/kem_demo_client.py"];
   kem [label="src/algorithms/kem.py\nMLKEM768", color="#39ffe0"];
   sig [label="src/algorithms/signature.py\nSignature / MLDSA65 / Falcon512", color="#39ffe0"];
+  kms [label="src/kms/store.py\nKeyStore", color="#39ffe0"];
   liboqs_helper [label="src/algorithms/_liboqs.py\nshared loader"];
   liboqs [label="liboqs.so (external)\nOpen Quantum Safe C library", color="#ff2ec4", shape=box3d];
   openssl [label="openssl + oqs-provider\n(external, CLI-driven)", color="#ff2ec4", shape=box3d];
-  future [label="src/kms/, src/pki/,\nsrc/protocols/tls/\n(planned, empty today)", color="#8a99a8", style=dashed];
+  crypto [label="cryptography library\n(AESGCM, Scrypt)", color="#ff2ec4", shape=box3d];
+  future [label="src/pki/, src/protocols/tls/\n(planned, empty today)", color="#8a99a8", style=dashed];
 
-  cli -> sshkeygen [style=dashed, label="not yet wired"];
+  cli -> kem [label="benchmark, server"];
+  cli -> sig [label="benchmark"];
+  democlient -> kem [label="connects to\ncli server over TCP", style=dashed];
   sshkeygen -> sig;
+  sshkeygen -> kms [label="--encrypt"];
+  kms -> crypto;
   tlstest -> openssl;
   kem -> liboqs_helper;
   sig -> liboqs_helper;

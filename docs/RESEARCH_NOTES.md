@@ -6,6 +6,27 @@ background (that's in `NIST_COMPLIANCE.md`).
 
 ---
 
+## 2026-09-14 — Wired KeyStore into simple_ssh_keygen.py, and found two stale diagrams doing it
+
+Added a `--encrypt` flag to `simple_ssh_keygen.py`: with it, the private
+key goes through `KeyStore.save_keypair()` (passphrase prompted twice via
+`getpass`) instead of being written as a plaintext file; without it,
+behavior is byte-for-byte unchanged from before. Verified both paths:
+plaintext mode still produces the same output as before, encrypt mode
+round-trips correctly, and a full non-interactive run via `subprocess`
+with a redirected `HOME` exercises the whole CLI flow end-to-end.
+
+While updating `diagrams/01-system-architecture.dot` and
+`diagrams/05-repo-module-map.dot` to add the new `KeyStore` edge, found
+both diagrams had already drifted from reality *before* this change —
+`01` still showed `benchmark`/`server` as simulated (fixed two commits
+ago) and `05` still showed `verify_liboqs()` as an unfixed duplicate
+loader (fixed even earlier). Neither diagram had been touched since
+those code changes landed. Rewrote both to match current reality; see
+`docs/BEST_PRACTICES.md`'s new entry on why this happened.
+
+---
+
 ## 2026-09-14 — Key storage was entirely absent; added and tested a minimal version
 
 Before this entry, `simple_ssh_keygen.py` was the only code path in this

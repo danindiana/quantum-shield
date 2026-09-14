@@ -12,9 +12,11 @@ digraph modulemap {
   tests_kem [label="tests/test_kem.py"];
   tests_sig [label="tests/test_signature.py"];
   tests_setup [label="tests/test_setup.py"];
+  tests_kms [label="tests/test_kms.py"];
 
   kem [label="src/algorithms/kem.py", color="#39ffe0"];
   sig [label="src/algorithms/signature.py", color="#39ffe0"];
+  kms [label="src/kms/store.py", color="#39ffe0"];
   liboqs_mod [label="src/algorithms/_liboqs.py"];
 
   sshkeygen [label="simple_ssh_keygen.py"];
@@ -24,9 +26,15 @@ digraph modulemap {
   tests_kem -> kem;
   tests_sig -> sig;
   tests_setup -> config;
+  tests_kms -> kms;
+  tests_kms -> kem [label="uses real\nkeypairs, not\nfabricated bytes"];
   kem -> liboqs_mod;
   sig -> liboqs_mod;
+  kms -> sig [style=invis];
   sshkeygen -> sig;
+  sshkeygen -> kms [label="--encrypt"];
   cli -> config;
-  cli -> liboqs_mod [style=dashed, label="verify_liboqs()\n(separate ctypes check,\nnot yet using _liboqs.py)"];
+  cli -> kem [label="benchmark, server"];
+  cli -> sig [label="benchmark"];
+  cli -> liboqs_mod [label="verify_liboqs()\n(fixed: was a duplicate\ncopy of this loader,\nnow delegates to it)"];
 }

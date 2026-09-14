@@ -6,6 +6,31 @@ copied from a style guide. Newest first.
 
 ---
 
+### 2026-09-14 — Diagrams rot exactly like duplicated code; check them when the thing they describe changes
+
+**What happened:** `diagrams/01-system-architecture.dot` and
+`diagrams/05-repo-module-map.dot` were drawn once, then never revisited
+across two subsequent commits that changed the exact things they
+described — one still showed `quantum_shield.py`'s `benchmark`/`server`
+as simulated after they were made real, and `05` still showed
+`verify_liboqs()` as an unfixed duplicate loader *after* that duplication
+had already been fixed and celebrated in `PROGRESS.md`. Both diagrams
+were quietly wrong for a full commit cycle before this entry caught it
+while wiring in `src/kms/`.
+
+**Practice:** a diagram is a claim about the code, same as a docstring or
+a README line — it needs the same "does this still match reality" check
+before considering a change done, not just when it's first drawn. It's
+easy to add a *new* diagram for a new feature and forget that *existing*
+diagrams depicting the same subsystem now need a look too.
+
+**How to apply here:** whenever a change touches a module that already
+has a diagram referencing it, grep the diagram sources
+(`grep -rl <module name> diagrams/*.dot`) before considering the change
+done, the same way this session already greps for stale doc references.
+
+---
+
 ### 2026-09-14 — Bind identifying context into an AEAD ciphertext as associated data
 
 **What happened:** designing `src/kms/store.py`'s file format, the key's

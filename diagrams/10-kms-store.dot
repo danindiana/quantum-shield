@@ -10,6 +10,7 @@ digraph kms {
   edge [color="#8f5cff", fontcolor="#c9d1d9", fontname="Helvetica", penwidth=1.6, fontsize=11];
 
   keygen [label="MLKEM768 / Signature\ngenerate_keypair()", color="#ffcb47"];
+  sshkeygen [label="simple_ssh_keygen.py\n--encrypt flag", color="#ffcb47"];
   passphrase [label="passphrase (string)", color="#ffcb47"];
 
   save [label="KeyStore.save_keypair(...)", shape=diamond, color="#ff2ec4"];
@@ -24,6 +25,7 @@ digraph kms {
   missing [label="NOT included:\nkey rotation, multi-user ACL,\nHSM/TPM backing --\nsee FUTURE_DIRECTIONS.md", shape=note, color="#8a99a8"];
 
   keygen -> save;
+  sshkeygen -> save [label="wired in --\nverified this session"];
   passphrase -> save;
   save -> scrypt -> aesgcm -> diskfile;
 
